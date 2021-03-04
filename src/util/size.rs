@@ -1,66 +1,61 @@
-//
-#[derive(Copy, Clone)]
-pub struct Size {
-    pub w: usize,
-    pub h: usize,
-}
-
-impl Size {
-    pub fn new(w: usize, h: usize) -> Size {
-        Size { w, h }
-    }
-
-    pub fn area(&self) -> Area {
-        Area::new((0, 0), (self.w, self.h))
-    }
-
-    pub fn add(&self, w: usize, h: usize) -> Size {
-        Size::new(self.w + w, self.h + h)
-    }
-
-    pub fn sub(&self, w: usize, h: usize) -> Size {
-        Size::new(self.w - w, self.h - h)
-    }
-
-    pub fn shift(&self, size: &Size) -> Size {
-        return Size {
-            w: self.w + size.w,
-            h: self.h + size.h,
-        };
-    }
-
-    pub fn as_tuple(&self) -> (usize, usize) {
-        return (self.w, self.h);
-    }
-}
-
-//
-pub struct Spot {
+///
+#[derive(Clone, Copy)]
+pub struct Span {
     pub x: usize,
     pub y: usize,
 }
 
-impl Spot {
-    pub fn shift(&self, size: &Size) -> (usize, usize) {
-        return (self.x + size.w, self.y + size.h);
+impl Span {
+    pub fn new(x: usize, y: usize) -> Span {
+        return Span { x, y };
+    }
+
+    pub fn shift(&self, offset: &Span) -> Span {
+        return Span::new(self.x + offset.x, self.y + offset.y);
+    }
+    
+    pub fn area(&self) -> Area {
+        Area::new((0, 0).into(), (self.x, self.y).into())
+    }
+
+    pub fn add(&self, x: usize, y: usize) -> Span {
+        Span::new(self.x + x, self.x + y)
+    }
+
+    pub fn sub(&self, x: usize, y: usize) -> Span {
+        Span::new(self.x - x, self.y - y)
+    }
+
+    pub fn as_tuple(&self) -> (usize, usize) {
+        return (self.x, self.y);
     }
 }
 
-//
-pub struct Area(pub Spot, pub Spot);
+impl Into<Span> for (usize, usize) {
+    fn into(self) -> Span {
+        return Span::new(self.0, self.1)
+    }
+}
+
+///
+pub struct Area(pub Span, pub Span);
 
 impl Area {
-    pub fn new(a: (usize, usize), b: (usize, usize)) -> Area {
-        Area {
-            0: Spot { x: a.0, y: a.1 },
-            1: Spot { x: b.0, y: b.1 },
-        }
+    pub fn new(a: Span, b: Span) -> Area {
+        return Area { 0: a, 1: b }
     }
 
-    pub fn size(&self) -> Size {
-        return Size {
-            w: self.1.x - self.0.x,
-            h: self.1.y - self.0.y,
+    pub fn relitive(&self, a: Span, b: Span) -> Area {
+        Area {
+            0: a.shift(&self.0),
+            1: b.shift(&self.0)
+        }
+    }
+    
+    pub fn size(&self) -> Span {
+        return Span {
+            x: self.1.x - self.0.x,
+            y: self.1.y - self.0.y,
         };
     }
 }

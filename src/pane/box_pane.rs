@@ -1,6 +1,5 @@
-use super::canvas::Renderer;
-use super::pane::{Bounds, Pane};
-use crate::util::Size;
+use crate::pane::{Renderer, Pane};
+use crate::util::Span;
 
 pub struct BoxPane<'a> {
     pub child: &'a dyn Pane,
@@ -13,8 +12,8 @@ impl<'a> BoxPane<'a> {
 }
 
 impl<'a> Pane for BoxPane<'a> {
-    fn get_size(&self, bounds: Bounds) -> Size {
-        return self.get_size(bounds.shrink(2)).add(2, 2);
+    fn get_size(&self) -> Span {
+        return self.child.get_size().add(2, 2);
     }
 
     fn render(&self, renderer: Renderer) {
@@ -22,24 +21,24 @@ impl<'a> Pane for BoxPane<'a> {
         let size = renderer.size().sub(1, 1);
 
         // render corners
-        renderer.echo(0, 0, "┌");
-        renderer.echo(size.w, 0, "┐");
-        renderer.echo(0, size.h, "└");
-        renderer.echo(size.w, size.h, "┘");
+        renderer.draw(0, 0, "┌");
+        renderer.draw(size.x, 0, "┐");
+        renderer.draw(0, size.y, "└");
+        renderer.draw(size.x, size.y, "┘");
 
         // render horizontal bars
-        for x in 1..size.w {
-            renderer.echo(x, 0, "─");
-            renderer.echo(x, size.h, "─");
+        for x in 1..size.x {
+            renderer.draw(x, 0, "─");
+            renderer.draw(x, size.y, "─");
         }
 
         // render vertical bars
-        for y in 1..size.h {
-            renderer.echo(0, y, "│");
-            renderer.echo(size.w, y, "│");
+        for y in 1..size.y {
+            renderer.draw(0, y, "│");
+            renderer.draw(size.x, y, "│");
         }
 
         // render my child
-        renderer.draw(self.child, Size::new(1, 1), size.sub(1, 1));
+        renderer.draw_pane(self.child, Span::new(1, 1), size.sub(1, 1));
     }
 }

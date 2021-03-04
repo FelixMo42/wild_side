@@ -1,6 +1,10 @@
-pub mod canvas;
-pub mod pane;
+mod pane;
+pub use pane::*;
 
-pub mod box_pane;
-pub mod line_pane;
-pub mod text_pane;
+mod box_pane;
+mod line_pane;
+mod text_pane;
+
+pub use box_pane::*;
+pub use line_pane::*;
+pub use text_pane::*;

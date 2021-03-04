@@ -1,6 +1,6 @@
-use super::canvas::Renderer;
-use super::pane::{Bounds, Pane};
-use crate::util::Size;
+use crate::pane::{Renderer, Pane};
+use crate::util::Span;
+
 use std::cmp::min;
 
 /// Text panes draw, well, a bunch of text
@@ -21,20 +21,20 @@ impl TextPane {
 }
 
 impl Pane for TextPane {
-    fn get_size(&self, bounds: Bounds) -> Size {
-        return Size {
-            w: bounds.max.w,
-            h: self.text.len(),
+    fn get_size(&self) -> Span {
+        return Span {
+            x: 80,
+            y: self.text.len(),
         };
     }
 
     fn render(&self, renderer: Renderer) {
         let size = renderer.size();
 
-        for y in 0..min(size.h, self.text.len()) {
+        for y in 0..min(size.y, self.text.len()) {
             let end = self.text[y]
                 .char_indices()
-                .nth(size.w)
+                .nth(size.x)
                 .unwrap_or((self.text[y].len(), ' '))
                 .0;
 
@@ -43,7 +43,7 @@ impl Pane for TextPane {
             }
 
             let line = &self.text[y][..end];
-            renderer.echo(0, y, line);
+            renderer.draw(0, y, line);
         }
     }
 }

@@ -1,6 +1,5 @@
-use super::canvas::Renderer;
-use super::pane::{Bounds, Pane};
-use crate::util::Size;
+use crate::pane::{Renderer, Pane};
+use crate::util::Span;
 
 pub struct LinePane<'a> {
     pub child: &'a dyn Pane,
@@ -13,8 +12,8 @@ pub struct LinePane<'a> {
 } */
 
 impl<'a> Pane for LinePane<'a> {
-    fn get_size(&self, bounds: Bounds) -> Size {
-        return self.get_size(bounds.shrink(2)).add(2, 2);
+    fn get_size(&self) -> Span {
+        return self.child.get_size().add(4, 0);
     }
 
     fn render(&self, renderer: Renderer) {
@@ -22,11 +21,11 @@ impl<'a> Pane for LinePane<'a> {
         let size = renderer.size().sub(1, 1);
 
         // render the line numbers
-        for y in 0..size.h {
-            renderer.echo(0, y, &format!("{}", y)[..]);
+        for y in 0..size.y {
+            renderer.draw(0, y, &format!("{}", y)[..]);
         }
 
         // render my child
-        renderer.draw(self.child, Size::new(4, 0), size.sub(0, 0));
+        renderer.draw_pane(self.child, Span::new(4, 0), size.sub(0, 0));
     }
 }
