@@ -33,16 +33,9 @@ impl<'a> Canvas<'a> {
     }
 
     pub fn render(&mut self) -> String {
-        //
         let area = self.area();
-
-        //
-        let arc = Arc::new(Mutex::new(&mut self.data));
-
-        //
-        self.root.render(Renderer::new(arc, area));
-
-        // return the formated text
+        let data = Arc::new(Mutex::new(&mut self.data));
+        self.root.render(Renderer::new(data, area));
         return self.data.render(self.area());
     }
 }
@@ -107,15 +100,15 @@ impl Surface {
             self.chars.set(spot.x + i, spot.y, c);
         }
        
-        if let Some(bg) = style.bg {
+        if let Some(fg) = style.fg {
             for (i, _c) in text.char_indices() {
-                self.bg.set(spot.x + i, spot.y, bg);
+                self.fg.set(spot.x + i, spot.y, fg);
             }
         }
         
-        if let Some(fg) = style.fg {
+        if let Some(bg) = style.bg {
             for (i, _c) in text.char_indices() {
-                self.bg.set(spot.x + i, spot.y, fg);
+                self.bg.set(spot.x + i, spot.y, bg);
             }
         }
     }
@@ -139,7 +132,7 @@ impl Surface {
         cmd += &curr_bg.bg()[..];
 
         for y in area.0.y..area.1.y {
-            // position the cursor at the start of the line were about to draw
+            // position the cursor at the start of the line were about to draw too
             cmd += &format!("\x1b[{};{}H", y + 1, 1)[..];
 
             for x in area.0.x..area.1.x {

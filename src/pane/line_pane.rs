@@ -1,15 +1,10 @@
 use crate::pane::{Renderer, Pane};
 use crate::util::Span;
+use crate::color::{Style, GRAY5};
 
 pub struct LinePane<'a> {
     pub child: &'a dyn Pane,
 }
-
-/* impl <'a> BoxPane <'a> {
-    pub fn new(child: &'a dyn Pane) -> BoxPane {
-       return BoxPane { child };
-    }
-} */
 
 impl<'a> Pane for LinePane<'a> {
     fn get_size(&self) -> Span {
@@ -17,15 +12,16 @@ impl<'a> Pane for LinePane<'a> {
     }
 
     fn render(&self, renderer: Renderer) {
-        // get the size we need to fill
-        let size = renderer.size().sub(1, 1);
+        let size = renderer.size();
 
-        // render the line numbers
         for y in 0..size.y {
-            renderer.draw(0, y, &format!("{}", y)[..]);
+            renderer.draw_line_with_style(
+                (0, y).into(),
+                &format!("{:>3}", y)[..],
+                Style::fg(GRAY5)
+            );
         }
 
-        // render my child
         renderer.draw_pane(self.child, Span::new(4, 0), size.sub(0, 0));
     }
 }
