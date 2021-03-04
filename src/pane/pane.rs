@@ -1,4 +1,4 @@
-use crate::canvas::Renderer;
+use crate::pane::canvas::Renderer;
 
 ///
 #[derive(Clone, Copy)]
@@ -16,13 +16,6 @@ impl Size {
         return
             self.w >= min.w && self.w <= max.w &&
             self.h >= min.h && self.h <= min.h; 
-    }
-
-    pub fn clamp(&self, min: Size, max: Size) -> Size {
-        return Size {
-            w: self.w, //.clamp(min.w, max.w),
-            h: self.h  //.clamp(min.h, max.h)
-        }
     }
 
     pub fn add(&self, num: usize) -> Size {
