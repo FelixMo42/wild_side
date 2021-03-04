@@ -8,11 +8,11 @@ pub struct Canvas <'a> {
 }
 
 impl <'a> Canvas <'a> {
-    pub fn new(root: &'a dyn Pane, size: Size) -> Canvas <'a> {
+    pub fn new(root: &'a dyn Pane, size: (u16, u16)) -> Canvas <'a> {
         Canvas {
-            text: vec![" ".repeat(size.w); size.h],
+            size: Size::new(size.0 as usize, size.1 as usize),
+            text: vec![" ".repeat(size.0 as usize); size.1 as usize],
             root,
-            size,
         }
     }
 
@@ -38,7 +38,14 @@ impl <'a> Canvas <'a> {
     }
 
     fn print(&mut self) -> String {
-        return self.text.join("\n");
+        return self.text
+            .iter()
+            .enumerate()
+            .map(|(i, line)| format!("{}{}",
+                termion::cursor::Goto(1, (1 + i) as u16),
+                line
+            ))
+            .collect::<String>()
     }
 }
 
