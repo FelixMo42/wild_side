@@ -3,7 +3,7 @@ use termion::event::{Event, Key};
 use crate::pane::{Renderer, Pane};
 use crate::util::Span;
 
-use std::cmp::{min, max};
+use std::cmp::min;
 
 pub struct Text {
     lines: Vec<String>
@@ -150,7 +150,7 @@ impl Pane<Event> for TextPane {
             
             Event::Key(Key::Char(chr)) => {
                 self.text.insert(self.cursor, chr);
-                self.move_cursor_up()
+                self.move_cursor_right()
             },
             
             Event::Key(Key::Backspace) => {

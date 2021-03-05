@@ -17,7 +17,5 @@ l -> movemnet
 i -> insert
 
 o -> open
-
+h -> help
 g -> goto
-
-
