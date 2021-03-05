@@ -96,6 +96,10 @@ impl<'a> Renderer<'a> {
     pub fn clear(&self, area: Area) {
         self.data.lock().unwrap().draw_area(' ', area.shift(&self.area.0));
     }
+
+    pub fn set_cursor(&self, spot: Span) {
+        self.data.lock().unwrap().set_cursor(spot.shift(&self.area.0));
+    }
 }
 
 ///
@@ -103,6 +107,11 @@ struct Surface {
     fg: Vec2d<Color>,
     bg: Vec2d<Color>,
     chars: Vec2d<char>,
+    cursor: Span
+}
+
+fn cursor_cmd(x: usize, y: usize) -> String {
+    format!("\x1b[{};{}H", y + 1, x + 1)
 }
 
 impl Surface {
@@ -111,6 +120,7 @@ impl Surface {
             fg: Vec2d::new(size, fg),
             bg: Vec2d::new(size, bg),
             chars: Vec2d::new(size, ' '),
+            cursor: (0, 0).into()
         }
     }
 
@@ -140,6 +150,11 @@ impl Surface {
         }
     }
 
+    fn set_cursor(&mut self, spot: Span) {
+        self.cursor.x = spot.x;
+        self.cursor.y = spot.y;
+    }
+
     fn write(&mut self, x: usize, y: usize, text: &str) {
         for (i, c) in text.char_indices() {
             self.chars.set(x + i, y, c);
@@ -155,25 +170,25 @@ impl Surface {
         let mut curr_bg = self.bg.get(0, 0);
         let mut curr_fg = self.fg.get(0, 0);
 
-        cmd += &curr_fg.fg()[..];
-        cmd += &curr_bg.bg()[..];
+        cmd += curr_fg.fg().as_str();
+        cmd += curr_bg.bg().as_str();
 
         for y in area.0.y..area.1.y {
             // position the cursor at the start of the line were about to draw too
-            cmd += &format!("\x1b[{};{}H", y + 1, 1)[..];
+            cmd += cursor_cmd(0, y).as_str();
 
             for x in area.0.x..area.1.x {
                 // upgrade the fg if we need too
                 let fg = self.fg.get(x, y);
                 if curr_fg != fg {
-                    cmd += &fg.fg()[..];
+                    cmd += fg.fg().as_str();
                     curr_fg = fg;
                 }
 
                 // update the bg if we need too
                 let bg = self.bg.get(x, y);
                 if curr_bg != bg {
-                    cmd += &bg.bg()[..];
+                    cmd += bg.bg().as_str();
                     curr_bg = bg;
                 }
 
@@ -181,6 +196,8 @@ impl Surface {
                 cmd.push(self.chars.get(x, y));
             }
         }
+
+        cmd += cursor_cmd(self.cursor.x, self.cursor.y).as_str();
 
         return cmd;
     }
