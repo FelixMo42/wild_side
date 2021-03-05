@@ -13,15 +13,30 @@ use termion::terminal_size;
 use std::fs;
 use std::io::{stdin, stdout, Write};
 
-use pane::Canvas;
-use pane::LinePane;
-use pane::TextPane;
+use pane::*;
 
-fn main() {
-    // drop in the the new screen
+fn run(pane: &mut dyn Pane<Event>) {
+    let size = terminal_size().expect("could not get size of terminal!");
+
     let stdin = stdin();
     let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
 
+    let mut root = RootPane::new(pane, size);
+    screen.write(root.render().as_bytes()).unwrap();
+    screen.flush().unwrap();
+
+    for event in stdin.events() {
+        match event.unwrap() {
+            Event::Key(Key::Char('q')) => break,
+            e => {
+                screen.write(root.emit_event(e).as_bytes()).unwrap();
+                screen.flush().unwrap();
+            }
+        }
+    }
+}
+
+fn main() {
     // what file do we want to display?
     let path = "./src/main.rs";
 
@@ -29,31 +44,7 @@ fn main() {
     let contents = fs::read_to_string(path).expect("could not open file!");
 
     // the root node the document
-    let mut root = LinePane::<Event> {
+    run(&mut LinePane::<Event> {
         child: &mut TextPane::new(contents),
-    };
-
-    // get the size of the terminal
-    let size = terminal_size().expect("could not get size of terminal!");
-
-    // create the actuall rendering canvas
-    let mut renderer = Canvas::new(&mut root, size);
-
-    // render it
-    print!("{}{}", termion::clear::All, renderer.render());
-
-    // wait until q is pressed
-    for event in stdin.events() {
-        match event.unwrap() {
-            Event::Key(Key::Char('q')) => break,
-            e => {
-                print!("{}", renderer.emit_event(e));
-            }
-        }
-    
-        screen.flush().unwrap();
-    }
-
-    // make sure everything has been printed out
-    screen.flush().unwrap();
+    });
 }

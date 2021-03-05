@@ -12,17 +12,17 @@ pub trait Pane <Event> {
 }
 
 ///
-pub struct Canvas<'a, Event> {
+pub struct RootPane<'a, Event> {
     size: Span,
     data: Surface,
     root: &'a mut dyn Pane<Event>,
 }
 
-impl<'a, Event> Canvas<'a, Event> {
-    pub fn new(root: &'a mut dyn Pane<Event>, term_size: (u16, u16)) -> Canvas<'a, Event> {
+impl<'a, Event> RootPane<'a, Event> {
+    pub fn new(root: &'a mut dyn Pane<Event>, term_size: (u16, u16)) -> RootPane<'a, Event> {
         let size = Span::new(term_size.0 as usize, term_size.1 as usize);
 
-        Canvas {
+        RootPane {
             data: Surface::new(size, GRAY0, GRAY9),
             size,
             root,
@@ -35,18 +35,22 @@ impl<'a, Event> Canvas<'a, Event> {
 
     pub fn render(&mut self) -> String {
         let area = self.area();
+
         let data = Arc::new(Mutex::new(&mut self.data));
-        self.root.render(Renderer::new(data, area));
-        return self.data.render(self.area());
+        let renderer = Renderer::new(data, area.clone());
+        renderer.clear(area);
+        self.root.render(renderer);
+
+        return self.data.render(area);
     }
 
     pub fn emit_event(&mut self, event: Event) -> String {
-        let change = self.root.event(event);
+        let changed = self.root.event(event);
 
-        if change {
-            return self.render();
+        if changed {
+            self.render()
         } else {
-            return "".to_string();
+            "".to_string()
         }
     }
 }
@@ -88,6 +92,10 @@ impl<'a> Renderer<'a> {
             Area::new(self.area.0.shift(&spot), spot.shift(&size)),
         ));
     }
+
+    pub fn clear(&self, area: Area) {
+        self.data.lock().unwrap().draw_area(' ', area.shift(&self.area.0));
+    }
 }
 
 ///
@@ -120,6 +128,14 @@ impl Surface {
         if let Some(bg) = style.bg {
             for (i, _c) in text.char_indices() {
                 self.bg.set(spot.x + i, spot.y, bg);
+            }
+        }
+    }
+
+    fn draw_area(&mut self, chr: char, area: Area) {
+        for x in area.0.x..area.1.x {
+            for y in area.0.y..area.1.y {
+                self.chars.set(x, y, chr);
             }
         }
     }

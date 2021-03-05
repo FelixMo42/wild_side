@@ -38,6 +38,7 @@ impl Into<Span> for (usize, usize) {
 }
 
 ///
+#[derive(Clone, Copy)]
 pub struct Area(pub Span, pub Span);
 
 impl Area {
@@ -45,10 +46,10 @@ impl Area {
         return Area { 0: a, 1: b }
     }
 
-    pub fn relitive(&self, a: Span, b: Span) -> Area {
+    pub fn shift(&self, span: &Span) -> Area {
         Area {
-            0: a.shift(&self.0),
-            1: b.shift(&self.0)
+            0: self.0.shift(span),
+            1: self.1.shift(span)
         }
     }
     
