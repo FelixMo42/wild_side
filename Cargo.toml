@@ -5,4 +5,4 @@ authors = ["FelixMo42 <felix@tacocat.com>"]
 edition = "2018"
 
 [dependencies]
-termion = "*"
+termion = "1.5.6"

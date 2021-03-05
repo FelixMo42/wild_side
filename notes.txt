@@ -1,0 +1,23 @@
+m -> macro
+/ -> search
+[ -> untab
+] -> tab 
+# -> comment
+
+<Backspace> -> Delete
+
+h -> movement
+j -> movement
+k -> movement
+l -> movemnet
+
+- -> down tree
+= -> up tree
+
+i -> insert
+
+o -> open
+
+g -> goto
+
+

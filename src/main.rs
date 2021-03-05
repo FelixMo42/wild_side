@@ -22,12 +22,13 @@ fn run(pane: &mut dyn Pane<Event>) {
     let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
 
     let mut root = RootPane::new(pane, size);
+    screen.write(format!("{}", termion::cursor::SteadyBar).as_bytes()).unwrap();
     screen.write(root.render().as_bytes()).unwrap();
     screen.flush().unwrap();
 
     for event in stdin.events() {
         match event.unwrap() {
-            Event::Key(Key::Char('q')) => break,
+            Event::Key(Key::Esc) => break,
             e => {
                 screen.write(root.emit_event(e).as_bytes()).unwrap();
                 screen.flush().unwrap();
