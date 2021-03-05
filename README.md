@@ -1,4 +1,4 @@
-# Sunny Side
+# Sunny Side ☀️
 My dream rust ide (wip)
 
 ## Features
