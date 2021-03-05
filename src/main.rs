@@ -4,7 +4,7 @@ pub mod color;
 pub mod pane;
 pub mod util;
 
-use termion::event::Key;
+use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
@@ -29,24 +29,26 @@ fn main() {
     let contents = fs::read_to_string(path).expect("could not open file!");
 
     // the root node the document
-    let root = LinePane {
-        child: &TextPane::new(contents),
+    let mut root = LinePane::<Event> {
+        child: &mut TextPane::new(contents),
     };
 
     // get the size of the terminal
     let size = terminal_size().expect("could not get size of terminal!");
 
     // create the actuall rendering canvas
-    let mut renderer = Canvas::new(&root, size);
+    let mut renderer = Canvas::new(&mut root, size);
 
     // render it
     print!("{}{}", termion::clear::All, renderer.render());
 
     // wait until q is pressed
-    for c in stdin.keys() {
-        match c.unwrap() {
-            Key::Char('q') => break,
-            _ => {}
+    for event in stdin.events() {
+        match event.unwrap() {
+            Event::Key(Key::Char('q')) => break,
+            e => {
+                print!("{}", renderer.emit_event(e));
+            }
         }
     
         screen.flush().unwrap();

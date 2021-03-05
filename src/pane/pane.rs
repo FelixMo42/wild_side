@@ -5,20 +5,21 @@ use crate::color::Color;
 use std::sync::{Arc, Mutex};
 
 /// A pane is a genaric building block of the ui
-pub trait Pane {
+pub trait Pane <Event> {
     fn get_size(&self) -> Span;
     fn render(&self, renderer: Renderer);
+    fn event(&mut self, event: Event) -> bool;
 }
 
 ///
-pub struct Canvas<'a> {
+pub struct Canvas<'a, Event> {
     size: Span,
     data: Surface,
-    root: &'a dyn Pane,
+    root: &'a mut dyn Pane<Event>,
 }
 
-impl<'a> Canvas<'a> {
-    pub fn new(root: &'a dyn Pane, term_size: (u16, u16)) -> Canvas<'a> {
+impl<'a, Event> Canvas<'a, Event> {
+    pub fn new(root: &'a mut dyn Pane<Event>, term_size: (u16, u16)) -> Canvas<'a, Event> {
         let size = Span::new(term_size.0 as usize, term_size.1 as usize);
 
         Canvas {
@@ -37,6 +38,16 @@ impl<'a> Canvas<'a> {
         let data = Arc::new(Mutex::new(&mut self.data));
         self.root.render(Renderer::new(data, area));
         return self.data.render(self.area());
+    }
+
+    pub fn emit_event(&mut self, event: Event) -> String {
+        let change = self.root.event(event);
+
+        if change {
+            return self.render();
+        } else {
+            return "".to_string();
+        }
     }
 }
 
@@ -71,7 +82,7 @@ impl<'a> Renderer<'a> {
         );    
     }
 
-    pub fn draw_pane(&self, pane: &dyn Pane, spot: Span, size: Span) {
+    pub fn draw_pane<Event>(&self, pane: &dyn Pane<Event>, spot: Span, size: Span) {
         pane.render(Renderer::new(
             self.data.clone(),
             Area::new(self.area.0.shift(&spot), spot.shift(&size)),

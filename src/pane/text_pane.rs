@@ -20,7 +20,7 @@ impl TextPane {
     }
 }
 
-impl Pane for TextPane {
+impl<Event> Pane<Event> for TextPane {
     fn get_size(&self) -> Span {
         return Span {
             x: 80,
@@ -45,5 +45,10 @@ impl Pane for TextPane {
             let line = &self.text[y][..end];
             renderer.draw(0, y, line);
         }
+    }
+
+    fn event(&mut self, _event: Event) -> bool {
+        self.text[0] = format!("{}", "hi");
+        return true;
     }
 }

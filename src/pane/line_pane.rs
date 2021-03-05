@@ -2,11 +2,11 @@ use crate::pane::{Renderer, Pane};
 use crate::util::Span;
 use crate::color::{Style, GRAY5};
 
-pub struct LinePane<'a> {
-    pub child: &'a dyn Pane,
+pub struct LinePane<'a, Event> {
+    pub child: &'a mut dyn Pane<Event>,
 }
 
-impl<'a> Pane for LinePane<'a> {
+impl<'a, Event> Pane<Event> for LinePane<'a, Event> {
     fn get_size(&self) -> Span {
         return self.child.get_size().add(4, 0);
     }
@@ -23,5 +23,9 @@ impl<'a> Pane for LinePane<'a> {
         }
 
         renderer.draw_pane(self.child, Span::new(4, 0), size.sub(0, 0));
+    }
+    
+    fn event(&mut self, event: Event) -> bool {
+        return self.child.event(event);
     }
 }

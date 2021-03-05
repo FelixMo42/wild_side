@@ -1,17 +1,17 @@
 use crate::pane::{Renderer, Pane};
 use crate::util::Span;
 
-pub struct BoxPane<'a> {
-    pub child: &'a dyn Pane,
+pub struct BoxPane<'a, T> {
+    pub child: &'a mut dyn Pane<T>,
 }
 
-impl<'a> BoxPane<'a> {
-    pub fn new(child: &'a dyn Pane) -> BoxPane {
+impl<'a, T> BoxPane<'a, T> {
+    pub fn new(child: &'a mut dyn Pane<T>) -> BoxPane<T> {
         return BoxPane { child };
     }
 }
 
-impl<'a> Pane for BoxPane<'a> {
+impl<'a, T> Pane<T> for BoxPane<'a, T> {
     fn get_size(&self) -> Span {
         return self.child.get_size().add(2, 2);
     }
@@ -40,5 +40,9 @@ impl<'a> Pane for BoxPane<'a> {
 
         // render my child
         renderer.draw_pane(self.child, Span::new(1, 1), size.sub(1, 1));
+    }
+
+    fn event(&mut self, event: T) -> bool {
+        return self.child.event(event);
     }
 }
