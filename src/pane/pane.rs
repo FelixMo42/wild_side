@@ -1,14 +1,15 @@
-use crate::color::{GRAY0, GRAY9, Style};
-use crate::util::{Area, Span, Vec2d};
 use crate::color::Color;
+use crate::color::{Style, GRAY0, GRAY9};
+use crate::util::{Area, Span, Vec2d};
 
 use std::sync::{Arc, Mutex};
 
 /// A pane is a genaric building block of the ui
-pub trait Pane <Event> {
+pub trait Pane<Event> {
     fn render(&self, canvas: Canvas);
     fn event(&mut self, event: Event) -> bool;
 }
+
 
 ///
 pub struct PaneHandler<'a, Event> {
@@ -18,9 +19,11 @@ pub struct PaneHandler<'a, Event> {
 }
 
 impl<'a, Event> PaneHandler<'a, Event> {
-    pub fn new(root: &'a mut dyn Pane<Event>, term_size: (u16, u16)) -> PaneHandler<'a, Event> {
-        let size = Span::new(term_size.0 as usize, term_size.1 as usize);
-
+    
+    pub fn new(
+        root: &'a mut dyn Pane<Event>, 
+        size: Span,
+    ) -> PaneHandler<'a, Event> {
         PaneHandler {
             data: Surface::new(size, GRAY0, GRAY9),
             size,
@@ -68,36 +71,49 @@ impl<'a> Canvas<'a> {
     pub fn size(&self) -> Span {
         return self.area.size();
     }
+    
+    pub fn area(&self) -> Area {
+        return self.area.size().area();
+    }
 
     pub fn draw(&self, spot: Span, text: &str) {
         self.data.lock().unwrap().draw_line(
             spot.shift(&self.area.0),
             text,
-            &Style::new(None, None)
+            &Style::new(None, None),
         );
     }
 
     pub fn draw_line_with_style(&self, spot: Span, text: &str, style: &Style) {
-        self.data.lock().unwrap().draw_line(
-            spot.shift(&self.area.0),
-            text,
-            style
-        );    
+        self.data
+            .lock()
+            .unwrap()
+            .draw_line(spot.shift(&self.area.0), text, style);
     }
 
-    pub fn draw_pane<Event>(&self, pane: &dyn Pane<Event>, spot: Span, size: Span) {
+    pub fn draw_pane<Event>(&self, pane: &dyn Pane<Event>, area: Area) {
         pane.render(Canvas::new(
             self.data.clone(),
-            Area::new(self.area.0.shift(&spot), spot.shift(&size)),
+            area.shift(&self.area.0)
         ));
     }
 
     pub fn clear(&self, area: Area) {
-        self.data.lock().unwrap().draw_area(' ', area.shift(&self.area.0));
+        self.data
+            .lock()
+            .unwrap()
+            .draw_area(' ', area.shift(&self.area.0));
     }
 
     pub fn set_cursor(&self, spot: Span) {
-        self.data.lock().unwrap().set_cursor(spot.shift(&self.area.0));
+        self.data
+            .lock()
+            .unwrap()
+            .set_cursor(spot.shift(&self.area.0));
+    }
+
+    pub fn style_area(&self, style: &Style, area: Area) {
+        self.data.lock().unwrap().style_area(style, area.shift(&self.area.0));
     }
 }
 
@@ -106,7 +122,7 @@ struct Surface {
     fg: Vec2d<Color>,
     bg: Vec2d<Color>,
     chars: Vec2d<char>,
-    cursor: Span
+    cursor: Span,
 }
 
 fn cursor_cmd(x: usize, y: usize) -> String {
@@ -119,7 +135,7 @@ impl Surface {
             fg: Vec2d::new(size, fg),
             bg: Vec2d::new(size, bg),
             chars: Vec2d::new(size, ' '),
-            cursor: (0, 0).into()
+            cursor: (0, 0).into(),
         }
     }
 
@@ -127,13 +143,13 @@ impl Surface {
         for (i, c) in text.char_indices() {
             self.chars.set(spot.x + i, spot.y, c);
         }
-       
+
         if let Some(fg) = style.fg {
             for (i, _c) in text.char_indices() {
                 self.fg.set(spot.x + i, spot.y, fg);
             }
         }
-        
+
         if let Some(bg) = style.bg {
             for (i, _c) in text.char_indices() {
                 self.bg.set(spot.x + i, spot.y, bg);
@@ -149,14 +165,32 @@ impl Surface {
         }
     }
 
+    fn style_area(&mut self, style: &Style, area: Area) {
+        if let Some(fg) = style.fg { 
+            for x in area.0.x..area.1.x {
+                for y in area.0.y..area.1.y {
+                    self.fg.set(x, y, fg);
+                }
+            }
+        }
+        
+        if let Some(bg) = style.bg { 
+            for x in area.0.x..area.1.x {
+                for y in area.0.y..area.1.y {
+                    self.bg.set(x, y, bg);
+                }
+            }
+        }
+    }
+
     fn set_cursor(&mut self, spot: Span) {
         self.cursor.x = spot.x;
         self.cursor.y = spot.y;
     }
 
     fn render(&self, area: Area) -> String {
-        // put all the changes we need to make in one string so we dont need to
-        // print to stdout as often as its slow
+        // put all the changes we need to make in one string so
+        // we dont need to print to stdout as often as its slow
         let mut cmd = "".to_string();
 
         // keep track of fg and bg so we can only change it when we need too
@@ -167,7 +201,8 @@ impl Surface {
         cmd += curr_bg.bg_cmd().as_str();
 
         for y in area.0.y..area.1.y {
-            // position the cursor at the start of the line were about to draw too
+            // position the cursor at the start of the line
+            // were about to draw too
             cmd += cursor_cmd(0, y).as_str();
 
             for x in area.0.x..area.1.x {
@@ -190,6 +225,8 @@ impl Surface {
             }
         }
 
+        // place the cursor in the correct position of screen visually
+        // this has to come last or the rendering will move it
         cmd += cursor_cmd(self.cursor.x, self.cursor.y).as_str();
 
         return cmd;

@@ -13,7 +13,7 @@ impl Span {
     pub fn shift(&self, offset: &Span) -> Span {
         return Span::new(self.x + offset.x, self.y + offset.y);
     }
-    
+
     pub fn area(&self) -> Area {
         Area::new((0, 0).into(), (self.x, self.y).into())
     }
@@ -33,7 +33,10 @@ impl Span {
 
 impl Into<Span> for (usize, usize) {
     fn into(self) -> Span {
-        return Span::new(self.0, self.1)
+        return Span::new(
+            self.0 as usize,
+            self.1 as usize,
+        );
     }
 }
 
@@ -43,20 +46,27 @@ pub struct Area(pub Span, pub Span);
 
 impl Area {
     pub fn new(a: Span, b: Span) -> Area {
-        return Area { 0: a, 1: b }
+        return Area { 0: a, 1: b };
     }
 
     pub fn shift(&self, span: &Span) -> Area {
         Area {
             0: self.0.shift(span),
-            1: self.1.shift(span)
+            1: self.1.shift(span),
         }
     }
-    
+
     pub fn size(&self) -> Span {
         return Span {
             x: self.1.x - self.0.x,
             y: self.1.y - self.0.y,
         };
+    }
+
+    pub fn horizontal_slice(&self, start: usize, end: usize) -> Area {
+        return Area::new(
+            (start, self.0.y).into(),
+            (  end, self.1.y).into()
+        );
     }
 }

@@ -6,6 +6,7 @@ My dream rust ide (wip)
 * Delete/insert text
 * Can only edit src/main.rs (totally a feature)
 * Dont worry if you mess it up, you cant save! (also definitly a feature)
+* Useless side bar to see the files your not allowed to open
 
 ## Parts
 ### Pane

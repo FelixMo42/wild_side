@@ -20,11 +20,11 @@ impl Color {
     }
 
     pub fn as_fg(self) -> Style {
-        Style::fg(self)
+        return Style::fg(self);
     }
 
     pub fn as_bg(self) -> Style {
-        Style::bg(self)
+        return Style::bg(self);
     }
 }
 
@@ -36,15 +36,15 @@ pub struct Style {
 
 impl Style {
     pub fn new(fg: Option<Color>, bg: Option<Color>) -> Style {
-        return Style { fg, bg }
+        return Style { fg, bg };
     }
     
     pub fn fg(fg: Color) -> Style {
-       return Style::new(Some(fg), None)
+        return Style::new(Some(fg), None);
     }
 
     pub fn bg(bg: Color) -> Style {
-       return Style::new(None, Some(bg))
+       return Style::new(None, Some(bg));
     }
 }
 
