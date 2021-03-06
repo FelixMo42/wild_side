@@ -1,6 +1,6 @@
 use termion::event::{Event, Key};
 
-use crate::color::{GRAY5, GRAY8, GRAY2, Style};
+use crate::color::{Style, GRAY2, GRAY5, GRAY8};
 use crate::pane::{Canvas, Pane};
 use crate::util::Span;
 
@@ -74,10 +74,7 @@ impl Editor {
     }
 
     pub fn load(path: String) -> Editor {
-        return Editor::new(
-            fs::read_to_string(path)
-                .expect("could not read file!")
-        );
+        return Editor::new(fs::read_to_string(path).expect("could not read file!"));
     }
 
     fn get_line_length(&self) -> usize {
@@ -130,10 +127,7 @@ impl Editor {
 
 impl Pane<Event> for Editor {
     fn render(&self, canvas: Canvas) {
-        canvas.style_area(
-            &Style::new(Some(GRAY2), Some(GRAY8)),
-            canvas.area()
-        );
+        canvas.style_area(&Style::new(Some(GRAY2), Some(GRAY8)), canvas.area());
 
         let size = canvas.size();
 

@@ -33,10 +33,7 @@ impl Span {
 
 impl Into<Span> for (usize, usize) {
     fn into(self) -> Span {
-        return Span::new(
-            self.0 as usize,
-            self.1 as usize,
-        );
+        return Span::new(self.0 as usize, self.1 as usize);
     }
 }
 
@@ -64,9 +61,6 @@ impl Area {
     }
 
     pub fn horizontal_slice(&self, start: usize, end: usize) -> Area {
-        return Area::new(
-            (start, self.0.y).into(),
-            (  end, self.1.y).into()
-        );
+        return Area::new((start, self.0.y).into(), (end, self.1.y).into());
     }
 }
