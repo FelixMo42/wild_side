@@ -1,9 +1,10 @@
 use termion::event::{Event, Key};
 
-use crate::pane::{Renderer, Pane};
+use crate::pane::{Canvas, Pane};
 use crate::util::Span;
+use crate::color::GRAY5;
 
-use std::cmp::min;
+use std::{cmp::min, fs};
 
 pub struct Text {
     lines: Vec<String>
@@ -38,7 +39,13 @@ impl Text {
 
     pub fn insert(&mut self, spot: Span, chr: char) {
         let index = self.get_index(spot);
-        self.lines[spot.y].insert(index, chr);
+
+        if chr == '\n' {
+            let line = self.lines[spot.y].split_off(index);
+            self.lines.insert(spot.y + 1, line);
+        } else {
+            self.lines[spot.y].insert(index, chr);
+        }
     }
 
     pub fn delete(&mut self, spot: Span) {
@@ -53,17 +60,24 @@ impl Text {
 }
 
 /// Text panes draw, well, a bunch of text
-pub struct TextPane {
+pub struct Editor {
     text: Text,
     cursor: Span
 }
 
-impl TextPane {
-    pub fn new(text: String) -> TextPane {
-        return TextPane {
+impl Editor {
+    pub fn new(text: String) -> Editor {
+        return Editor {
             text: Text::new(text),
             cursor: (0, 0).into()
         };
+    }
+
+    pub fn load(path: String) -> Editor {
+        return Editor::new(
+            fs::read_to_string(path)
+                .expect("could not read file!")
+        );
     }
 
     fn get_line_length(&self) -> usize {
@@ -108,35 +122,42 @@ impl TextPane {
             self.cursor.x += 1;
         }
     }
+
+    fn get_line(&self, line: usize, len: usize) -> &str {
+        let text = &self.text.lines[line];
+        let end = text
+            .char_indices()
+            .nth(len)
+            .unwrap_or((text.len(), ' '))
+            .0;
+
+        return &text[..end];
+    }
 }
 
-impl Pane<Event> for TextPane {
-    fn get_size(&self) -> Span {
-        return Span {
-            x: 80,
-            y: self.text.len(),
-        };
-    }
+impl Pane<Event> for Editor {
+    fn render(&self, canvas: Canvas) {
+        let size = canvas.size();
 
-    fn render(&self, renderer: Renderer) {
-        let size = renderer.size();
+        let line_num_bar_width = 4;
+        let line_num_bar_style = GRAY5.clone().as_fg();
+        
+        // this only sets the visual position of the cursor,
+        // it does not change where we draw things
+        canvas.set_cursor(self.cursor.shift(&(line_num_bar_width, 0).into()));
 
-        renderer.set_cursor(self.cursor);
 
         for y in 0..min(size.y, self.text.len()) {
-            let line = &self.text.lines[y];
-            let end = line
-                .char_indices()
-                .nth(size.x)
-                .unwrap_or((line.len(), ' '))
-                .0;
+            canvas.draw_line_with_style(
+                (0, y).into(),
+                format!("{:>1$}", y, line_num_bar_width - 1).as_str(),
+                &line_num_bar_style
+            );
 
-            if end == 0 {
-                continue;
-            }
-
-            let line = &self.text.lines[y][..end];
-            renderer.draw(0, y, line);
+            canvas.draw(
+                (line_num_bar_width , y).into(),
+                self.get_line(y, size.x - line_num_bar_width)
+            );
         }
     }
 
@@ -148,16 +169,16 @@ impl Pane<Event> for TextPane {
             Event::Key(Key::Left ) => self.move_cursor_left(),
             Event::Key(Key::Right) => self.move_cursor_right(),
             
+            Event::Key(Key::Backspace) => {
+                self.move_cursor_left();
+                self.text.delete(self.cursor);
+            },
+
             Event::Key(Key::Char(chr)) => {
                 self.text.insert(self.cursor, chr);
                 self.move_cursor_right()
             },
-            
-            Event::Key(Key::Backspace) => {
-                self.move_cursor_left();
-                self.text.delete(self.cursor);
-            }
-
+        
             _ => {}
         }
 

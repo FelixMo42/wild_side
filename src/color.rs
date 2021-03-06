@@ -11,12 +11,20 @@ impl Color {
         return Color { r, g, b };
     }
 
-    pub fn fg(&self) -> String {
+    pub fn fg_cmd(&self) -> String {
         format!("\x1B[38;2;{};{};{}m", self.r, self.g, self.b)
     }
 
-    pub fn bg(&self) -> String {
+    pub fn bg_cmd(&self) -> String {
         format!("\x1B[48;2;{};{};{}m", self.r, self.g, self.b)
+    }
+
+    pub fn as_fg(self) -> Style {
+        Style::fg(self)
+    }
+
+    pub fn as_bg(self) -> Style {
+        Style::bg(self)
     }
 }
 

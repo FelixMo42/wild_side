@@ -6,23 +6,22 @@ use std::sync::{Arc, Mutex};
 
 /// A pane is a genaric building block of the ui
 pub trait Pane <Event> {
-    fn get_size(&self) -> Span;
-    fn render(&self, renderer: Renderer);
+    fn render(&self, canvas: Canvas);
     fn event(&mut self, event: Event) -> bool;
 }
 
 ///
-pub struct RootPane<'a, Event> {
+pub struct PaneHandler<'a, Event> {
     size: Span,
     data: Surface,
     root: &'a mut dyn Pane<Event>,
 }
 
-impl<'a, Event> RootPane<'a, Event> {
-    pub fn new(root: &'a mut dyn Pane<Event>, term_size: (u16, u16)) -> RootPane<'a, Event> {
+impl<'a, Event> PaneHandler<'a, Event> {
+    pub fn new(root: &'a mut dyn Pane<Event>, term_size: (u16, u16)) -> PaneHandler<'a, Event> {
         let size = Span::new(term_size.0 as usize, term_size.1 as usize);
 
-        RootPane {
+        PaneHandler {
             data: Surface::new(size, GRAY0, GRAY9),
             size,
             root,
@@ -37,9 +36,9 @@ impl<'a, Event> RootPane<'a, Event> {
         let area = self.area();
 
         let data = Arc::new(Mutex::new(&mut self.data));
-        let renderer = Renderer::new(data, area.clone());
-        renderer.clear(area);
-        self.root.render(renderer);
+        let canvas = Canvas::new(data, area.clone());
+        canvas.clear(area);
+        self.root.render(canvas);
 
         return self.data.render(area);
     }
@@ -56,29 +55,29 @@ impl<'a, Event> RootPane<'a, Event> {
 }
 
 ///
-pub struct Renderer<'a> {
+pub struct Canvas<'a> {
     area: Area,
     data: Arc<Mutex<&'a mut Surface>>,
 }
 
-impl<'a> Renderer<'a> {
-    fn new(data: Arc<Mutex<&'a mut Surface>>, area: Area) -> Renderer<'a> {
-        return Renderer { data, area };
+impl<'a> Canvas<'a> {
+    fn new(data: Arc<Mutex<&'a mut Surface>>, area: Area) -> Canvas<'a> {
+        return Canvas { data, area };
     }
 
     pub fn size(&self) -> Span {
         return self.area.size();
     }
 
-    pub fn draw(&self, x: usize, y: usize, text: &str) {
-        self.data.lock().unwrap().write(
-            self.area.0.x + x,
-            self.area.0.y + y,
+    pub fn draw(&self, spot: Span, text: &str) {
+        self.data.lock().unwrap().draw_line(
+            spot.shift(&self.area.0),
             text,
+            &Style::new(None, None)
         );
     }
 
-    pub fn draw_line_with_style(&self, spot: Span, text: &str, style: Style) {
+    pub fn draw_line_with_style(&self, spot: Span, text: &str, style: &Style) {
         self.data.lock().unwrap().draw_line(
             spot.shift(&self.area.0),
             text,
@@ -87,7 +86,7 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn draw_pane<Event>(&self, pane: &dyn Pane<Event>, spot: Span, size: Span) {
-        pane.render(Renderer::new(
+        pane.render(Canvas::new(
             self.data.clone(),
             Area::new(self.area.0.shift(&spot), spot.shift(&size)),
         ));
@@ -124,7 +123,7 @@ impl Surface {
         }
     }
 
-    fn draw_line(&mut self, spot: Span, text: &str, style: Style) {
+    fn draw_line(&mut self, spot: Span, text: &str, style: &Style) {
         for (i, c) in text.char_indices() {
             self.chars.set(spot.x + i, spot.y, c);
         }
@@ -155,12 +154,6 @@ impl Surface {
         self.cursor.y = spot.y;
     }
 
-    fn write(&mut self, x: usize, y: usize, text: &str) {
-        for (i, c) in text.char_indices() {
-            self.chars.set(x + i, y, c);
-        }
-    }
-
     fn render(&self, area: Area) -> String {
         // put all the changes we need to make in one string so we dont need to
         // print to stdout as often as its slow
@@ -170,8 +163,8 @@ impl Surface {
         let mut curr_bg = self.bg.get(0, 0);
         let mut curr_fg = self.fg.get(0, 0);
 
-        cmd += curr_fg.fg().as_str();
-        cmd += curr_bg.bg().as_str();
+        cmd += curr_fg.fg_cmd().as_str();
+        cmd += curr_bg.bg_cmd().as_str();
 
         for y in area.0.y..area.1.y {
             // position the cursor at the start of the line were about to draw too
@@ -181,14 +174,14 @@ impl Surface {
                 // upgrade the fg if we need too
                 let fg = self.fg.get(x, y);
                 if curr_fg != fg {
-                    cmd += fg.fg().as_str();
+                    cmd += fg.fg_cmd().as_str();
                     curr_fg = fg;
                 }
 
                 // update the bg if we need too
                 let bg = self.bg.get(x, y);
                 if curr_bg != bg {
-                    cmd += bg.bg().as_str();
+                    cmd += bg.bg_cmd().as_str();
                     curr_bg = bg;
                 }
 
