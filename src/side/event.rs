@@ -3,19 +3,14 @@ pub enum Event {
     Char(char),
     Delete,
     Return,
+    Escape,
 
     // navigation
     Up,
     Down,
     Left,
     Right,
-}
 
-pub enum Cmd {}
-
-pub enum Key {
-    Char(char),
-
-    Delete,
-    Return,
+    // commands
+    OpenFile(String)
 }

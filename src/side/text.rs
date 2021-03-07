@@ -1,7 +1,6 @@
-use termion::event::{Event, Key};
-
 use crate::color::{Style, GRAY2, GRAY5, GRAY8};
 use crate::pane::{Canvas, Pane};
+use crate::side::Event;
 use crate::util::Span;
 
 use std::{cmp::min, fs};
@@ -154,17 +153,22 @@ impl Pane<Event> for Editor {
 
     fn event(&mut self, event: Event) -> bool {
         match event {
-            Event::Key(Key::Up) => self.move_cursor_up(),
-            Event::Key(Key::Down) => self.move_cursor_down(),
-            Event::Key(Key::Left) => self.move_cursor_left(),
-            Event::Key(Key::Right) => self.move_cursor_right(),
+            Event::Up => self.move_cursor_up(),
+            Event::Down => self.move_cursor_down(),
+            Event::Left => self.move_cursor_left(),
+            Event::Right => self.move_cursor_right(),
 
-            Event::Key(Key::Backspace) => {
+            Event::Delete => {
                 self.move_cursor_left();
                 self.text.delete(self.cursor);
             }
 
-            Event::Key(Key::Char(chr)) => {
+            Event::Return => {
+                self.text.insert(self.cursor, '\n');
+                self.move_cursor_right();
+            }
+
+            Event::Char(chr) => {
                 self.text.insert(self.cursor, chr);
                 self.move_cursor_right()
             }

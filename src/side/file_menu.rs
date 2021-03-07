@@ -1,8 +1,8 @@
-use std::sync::mpsc::Sender;
+use crate::color::{GRAY2, GRAY3, GRAY6};
+use crate::pane::{Canvas, Pane};
+use crate::side::Event;
 use ignore::WalkBuilder;
-use termion::event::{Event, Key};
-use crate::color::{GRAY6, GRAY3, GRAY2};
-use crate::pane::{Pane, Canvas};
+use std::sync::mpsc::Sender;
 
 ///
 pub struct FileMenu {
@@ -25,6 +25,16 @@ impl FileMenu {
                 .collect::<Vec<String>>(),
         };
     }
+
+    pub fn open_selected_file(&mut self) {
+        if let Ok(selection) = self.selector.parse::<usize>() {
+            self.selector = "".to_string();
+            if let Some(path) = self.files.get(selection) {
+                self.emiter.send(Event::OpenFile(path.clone())).unwrap();
+            }
+        }
+
+    }
 }
 
 impl Pane<Event> for FileMenu {
@@ -41,51 +51,35 @@ impl Pane<Event> for FileMenu {
             canvas.draw_line_with_style(
                 (1, y + 2).into(),
                 format!("{:>2}", y).as_str(),
-                &GRAY6.as_fg()
+                &GRAY6.as_fg(),
             );
 
-            canvas.draw_line_with_style(
-                (4, y + 2).into(),
-                path.as_str(),
-                &GRAY3.as_fg()
-            );
+            canvas.draw_line_with_style((4, y + 2).into(), path.as_str(), &GRAY3.as_fg());
         }
 
-        canvas.draw_line_with_style(
-            (4, 1).into(),
-            self.selector.as_str(),
-            &GRAY2.as_fg()
-        );
+        canvas.draw_line_with_style((4, 1).into(), self.selector.as_str(), &GRAY2.as_fg());
     }
 
     fn event(&mut self, event: Event) -> bool {
         return match event {
-            Event::Key(Key::Char(c@('0'..='9'))) => {
+            Event::Char(c @ ('0'..='9')) => {
                 self.selector.push(c);
                 true
-            },
-            Event::Key(Key::Backspace) => {
+            }
+            Event::Delete => {
                 if self.selector.len() == 0 {
                     false
                 } else {
-                    self.selector.remove(
-                        self.selector
-                            .char_indices()
-                            .map(|(i, _)| i)
-                            .last().unwrap()
-                    );
+                    self.selector
+                        .remove(self.selector.char_indices().map(|(i, _)| i).last().unwrap());
                     true
                 }
-            },
-            Event::Key(Key::Char('\n')) => {
-                if let Ok(selection) = self.selector.parse::<usize>() {
-                    self.selector = "".to_string();
-                    let _file = &self.files.get(selection);
-                    self.emiter.send(Event::Key(Key::Char('1'))).unwrap();
-                }
+            }
+            Event::Return => {
+                self.open_selected_file();
                 true
-            },
-            _ => false
+            }
+            _ => false,
         };
     }
 }

@@ -1,10 +1,7 @@
 use std::sync::mpsc::Sender;
 
-use termion::event::Event;
-use termion::event::Key;
-
-use crate::pane::{Canvas, Pane, layout, LayoutConstraint};
-use crate::side::Editor;
+use crate::pane::{layout, Canvas, LayoutConstraint, Pane};
+use crate::side::{Editor, Event};
 use crate::side::FileMenu;
 
 ///
@@ -40,20 +37,28 @@ impl Manager {
 
 impl Pane<Event> for Manager {
     fn render(&self, canvas: Canvas) {
-        layout::<Event>(canvas, vec![
-               (&self.left, LayoutConstraint::Flex(1)),
-               (&self.text, LayoutConstraint::Fixed(84)),
-        ]);
+        layout::<Event>(
+            canvas,
+            vec![
+                (&self.left, LayoutConstraint::Flex(1)),
+                (&self.text, LayoutConstraint::Fixed(84)),
+            ],
+        );
     }
 
     fn event(&mut self, event: Event) -> bool {
         return match event {
-            Event::Key(Key::Char('\t')) => {
+            Event::Char('\t') => {
                 self.selected = !self.selected;
                 return false;
             },
+            Event::OpenFile(path) => {
+                self.text = Editor::load(path);
+                self.selected = true;
+                return true;
+            }
 
-            _ => self.get_selected_pane().event(event)
+            _ => self.get_selected_pane().event(event),
         };
     }
 }

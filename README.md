@@ -4,9 +4,11 @@ My dream rust ide (wip)
 ## Features
 * Move cursors with arrow keys (with wrapping!)
 * Delete/insert text
-* Can only edit src/main.rs (totally a feature)
 * Dont worry if you mess it up, you cant save! (also definitly a feature)
-* Useless side bar to see the files your not allowed to open
+* File menu side bar to choose with file to edit
+
+## Usage
+Press tab to switch focus bettween text erea and file menu. When if file menu type in the number of the file you want to use and press enter to open it.
 
 ## Parts
 ### Pane
