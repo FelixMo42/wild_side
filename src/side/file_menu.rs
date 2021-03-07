@@ -1,4 +1,4 @@
-use crate::color::{GRAY2, GRAY3, GRAY6};
+use crate::color::{GRAY2, GRAY3, GRAY6, GRAY9};
 use crate::pane::{Canvas, Pane};
 use crate::side::Event;
 use ignore::WalkBuilder;
@@ -35,10 +35,23 @@ impl FileMenu {
         }
 
     }
+
+    pub fn delete(&mut self) {
+        if self.selector.len() == 0 {
+            return;
+        }
+
+        let index = self.selector
+            .char_indices()
+            .map(|(i, _)| i)
+            .last().unwrap();
+
+        self.selector.remove(index);
+    }
 }
 
 impl Pane<Event> for FileMenu {
-    fn render(&self, canvas: Canvas) {
+    fn render(&self, canvas: Canvas, selected: bool) {
         let size = canvas.size();
 
         for (y, file) in self.files.iter().enumerate() {
@@ -49,37 +62,39 @@ impl Pane<Event> for FileMenu {
                 .collect::<String>();
 
             canvas.draw_line_with_style(
-                (1, y + 2).into(),
+                (1, y + 1).into(),
                 format!("{:>2}", y).as_str(),
                 &GRAY6.as_fg(),
             );
 
-            canvas.draw_line_with_style((4, y + 2).into(), path.as_str(), &GRAY3.as_fg());
+            canvas.draw_line_with_style(
+                (4, y + 1).into(),
+                path.as_str(),
+                &GRAY3.as_fg()
+            );
+
+            canvas.style_area(&GRAY9.as_bg(), canvas.area());
         }
 
-        canvas.draw_line_with_style((4, 1).into(), self.selector.as_str(), &GRAY2.as_fg());
+        canvas.draw_line_with_style(
+            (4, 0).into(),
+            self.selector.as_str(),
+            &GRAY2.as_fg()
+        );
+
+        if selected {
+            canvas.set_cursor((4 + self.selector.chars().count(), 0).into())
+        }
     }
 
-    fn event(&mut self, event: Event) -> bool {
-        return match event {
+    fn event(&mut self, event: Event) {
+        match event {
             Event::Char(c @ ('0'..='9')) => {
                 self.selector.push(c);
-                true
-            }
-            Event::Delete => {
-                if self.selector.len() == 0 {
-                    false
-                } else {
-                    self.selector
-                        .remove(self.selector.char_indices().map(|(i, _)| i).last().unwrap());
-                    true
-                }
-            }
-            Event::Return => {
-                self.open_selected_file();
-                true
-            }
-            _ => false,
+            },
+            Event::Delete => self.delete(),
+            Event::Return => self.open_selected_file(),
+            _ => (),
         };
     }
 }

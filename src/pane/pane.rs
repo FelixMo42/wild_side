@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 /// A pane is a genaric building block of the ui
 pub trait Pane<Event> {
-    fn render(&self, canvas: Canvas);
-    fn event(&mut self, event: Event) -> bool;
+    fn render(&self, canvas: Canvas, selected: bool);
+    fn event(&mut self, event: Event);
 }
 
 ///
@@ -36,7 +36,7 @@ impl<Event> PaneHandler<Event> {
         let data = Arc::new(Mutex::new(&mut self.data));
         let canvas = Canvas::new(data, area.clone());
         canvas.clear(area);
-        self.root.render(canvas);
+        self.root.render(canvas, true);
 
         return self.data.render(area);
     }
@@ -44,10 +44,6 @@ impl<Event> PaneHandler<Event> {
     pub fn emit_event(&mut self, event: Event) -> String {
         let changed = self.root.event(event);
 
-        if changed {
-            self.render()
-        } else {
-            "".to_string()
-        }
+        return self.render();
     }
 }

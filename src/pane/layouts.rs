@@ -5,9 +5,9 @@ pub enum LayoutConstraint {
     Flex(usize),
 }
 
-pub type Layout<'a, Event> = Vec<(&'a dyn Pane<Event>, LayoutConstraint)>;
+pub type Layout<Event> = Vec<(Box<dyn Pane<Event>>, LayoutConstraint)>;
 
-pub fn layout<Event>(canvas: Canvas, layout: Layout<Event>) {
+pub fn layout<Event>(canvas: Canvas, selected: usize, layout: &Layout<Event>) {
     let area = canvas.area();
 
     let space_used_by_fixed_elements = layout
@@ -32,13 +32,17 @@ pub fn layout<Event>(canvas: Canvas, layout: Layout<Event>) {
 
     let mut offset = 0;
 
-    layout.into_iter().for_each(|(pane, constraint)| {
+    layout.into_iter().enumerate().for_each(|(y, (pane, constraint))| {
         let size: usize = match constraint {
             LayoutConstraint::Fixed(size) => size.clone(),
             LayoutConstraint::Flex(flex) => flex_per_unit * flex,
         };
 
-        canvas.draw_pane(pane, area.horizontal_slice(offset, offset + size));
+        canvas.draw_pane(
+            pane.as_ref(),
+            area.horizontal_slice(offset, offset + size),
+            selected == y
+        );
 
         offset += size;
     });

@@ -14,12 +14,16 @@ impl Span {
         return Span::new(self.x + offset.x, self.y + offset.y);
     }
 
+    pub fn unshift(&self, offset: &Span) -> Span {
+        return Span::new(self.x - offset.x, self.y - offset.y);
+    }
+
     pub fn area(&self) -> Area {
         Area::new((0, 0).into(), (self.x, self.y).into())
     }
 
     pub fn add(&self, x: usize, y: usize) -> Span {
-        Span::new(self.x + x, self.x + y)
+        Span::new(self.x + x, self.y + y)
     }
 
     pub fn sub(&self, x: usize, y: usize) -> Span {
@@ -62,5 +66,16 @@ impl Area {
 
     pub fn horizontal_slice(&self, start: usize, end: usize) -> Area {
         return Area::new((start, self.0.y).into(), (end, self.1.y).into());
+    }
+    
+    pub fn vertical_slice(&self, start: usize, end: usize) -> Area {
+        return Area::new((self.0.x, start).into(), (self.1.x, end).into());
+    }
+
+    pub fn shrink(&self, a: Span, b: Span) -> Area {
+        return Area::new(
+            self.0.shift(&a),
+            self.1.unshift(&b)
+        )
     }
 }

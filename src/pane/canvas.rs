@@ -38,8 +38,8 @@ impl<'a> Canvas<'a> {
             .draw_line(spot.shift(&self.area.0), text, style);
     }
 
-    pub fn draw_pane<Event>(&self, pane: &dyn Pane<Event>, area: Area) {
-        pane.render(Canvas::new(self.data.clone(), area.shift(&self.area.0)));
+    pub fn draw_pane<Event>(&self, pane: &dyn Pane<Event>, area: Area, selected: bool) {
+        pane.render(Canvas::new(self.data.clone(), area.shift(&self.area.0)), selected);
     }
 
     pub fn clear(&self, area: Area) {

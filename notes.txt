@@ -1,7 +1,6 @@
+    = commands =
 m -> macro
 / -> search
-[ -> untab
-] -> tab 
 # -> comment
 
 <Backspace> -> Delete
@@ -10,6 +9,7 @@ h -> movement
 j -> movement
 k -> movement
 l -> movemnet
+    + arrows
 
 - -> down tree
 = -> up tree
@@ -19,3 +19,10 @@ i -> insert
 o -> open
 h -> help
 g -> goto
+
+
+     =  menus =
+F -> file menu
+B -> buffer menu
+G -> git menu
+S -> shell

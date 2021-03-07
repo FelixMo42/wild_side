@@ -1,64 +1,54 @@
 use std::sync::mpsc::Sender;
-
-use crate::pane::{layout, Canvas, LayoutConstraint, Pane};
+use crate::pane::{Canvas, LayoutConstraint, Pane, layout};
 use crate::side::{Editor, Event};
-use crate::side::FileMenu;
+use crate::side::{FileMenu, TabBar};
 
 ///
 pub struct Manager {
-    left: FileMenu,
-    text: Editor,
-    selected: bool,
-    // emiter: Sender<Event>
+    layout: Vec<(Box<dyn Pane<Event>>, LayoutConstraint)>,
+    selected: usize,
 }
 
 impl Manager {
     pub fn new(emiter: Sender<Event>) -> Manager {
         Manager {
-            left: FileMenu::new(emiter),
-            text: Editor::load("src/main.rs".to_string()),
-            selected: true,
-            // emiter,
+            layout: vec![
+                (Box::new(TabBar::new(vec![
+                    ('F', Box::new(FileMenu::new(emiter.clone()))),
+                    ('B', Box::new(FileMenu::new(emiter))),
+                ])), LayoutConstraint::Fixed(40)),
+                (Box::new(Editor::new("".to_string())), LayoutConstraint::Flex(1)),
+            ],
+            selected: 0,
         }
     }
 
-    pub fn get_selected_pane(&mut self) -> &mut dyn Pane<Event> {
-        if self.selected {
-            return &mut self.text;
-        } else {
-            return &mut self.left;
-        }
+    pub fn get_selected_pane(&self) -> &dyn Pane<Event> {
+        self.layout[self.selected].0.as_ref()
     }
-
-    pub fn set_file(&mut self, path: String) {
-        self.text = Editor::load(path);
+    
+    pub fn get_selected_pane_mut(&mut self) -> &mut dyn Pane<Event> {
+        self.layout[self.selected].0.as_mut()
     }
 }
 
 impl Pane<Event> for Manager {
-    fn render(&self, canvas: Canvas) {
-        layout::<Event>(
-            canvas,
-            vec![
-                (&self.left, LayoutConstraint::Flex(1)),
-                (&self.text, LayoutConstraint::Fixed(84)),
-            ],
-        );
+    fn render(&self, canvas: Canvas, _selected: bool) {
+        layout::<Event>(canvas, self.selected, &self.layout);
     }
 
-    fn event(&mut self, event: Event) -> bool {
-        return match event {
+    fn event(&mut self, event: Event) {
+        match event {
             Event::Char('\t') => {
-                self.selected = !self.selected;
-                return false;
-            },
-            Event::OpenFile(path) => {
-                self.text = Editor::load(path);
-                self.selected = true;
-                return true;
+                self.selected = (self.selected + 1) % 2;
             }
 
-            _ => self.get_selected_pane().event(event),
+            Event::OpenFile(path) => {
+                self.selected = 1;
+                self.get_selected_pane_mut().event(Event::OpenFile(path));
+            }
+
+            _ => self.get_selected_pane_mut().event(event)
         };
     }
 }

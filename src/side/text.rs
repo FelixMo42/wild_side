@@ -2,8 +2,7 @@ use crate::color::{Style, GRAY2, GRAY5, GRAY8};
 use crate::pane::{Canvas, Pane};
 use crate::side::Event;
 use crate::util::Span;
-
-use std::{cmp::min, fs};
+use std::cmp::min;
 
 pub struct Text {
     lines: Vec<String>,
@@ -73,7 +72,7 @@ impl Editor {
     }
 
     pub fn load(path: String) -> Editor {
-        return Editor::new(fs::read_to_string(path).expect("could not read file!"));
+        return Editor::new(std::fs::read_to_string(path).expect("could not read file!"));
     }
 
     fn get_line_length(&self) -> usize {
@@ -122,20 +121,21 @@ impl Editor {
 
         return &text[..end];
     }
+
+    fn load_file(&mut self, path: String) {
+        self.text = Text::new(std::fs::read_to_string(path).expect("could not open file"));
+        self.cursor = (0, 0).into();
+    }
 }
 
 impl Pane<Event> for Editor {
-    fn render(&self, canvas: Canvas) {
+    fn render(&self, canvas: Canvas, selected: bool) {
         canvas.style_area(&Style::new(Some(GRAY2), Some(GRAY8)), canvas.area());
 
         let size = canvas.size();
 
         let line_num_bar_width = 4;
         let line_num_bar_style = GRAY5.clone().as_fg();
-
-        // this only sets the visual position of the cursor,
-        // it does not change where we draw things
-        canvas.set_cursor(self.cursor.shift(&(line_num_bar_width, 0).into()));
 
         for y in 0..min(size.y, self.text.len()) {
             canvas.draw_line_with_style(
@@ -149,9 +149,13 @@ impl Pane<Event> for Editor {
                 self.get_line(y, size.x - line_num_bar_width),
             );
         }
+        
+        if selected {
+            canvas.set_cursor(self.cursor.add(4, 0));
+        }
     }
 
-    fn event(&mut self, event: Event) -> bool {
+    fn event(&mut self, event: Event) {
         match event {
             Event::Up => self.move_cursor_up(),
             Event::Down => self.move_cursor_down(),
@@ -173,9 +177,11 @@ impl Pane<Event> for Editor {
                 self.move_cursor_right()
             }
 
+            Event::OpenFile(path) => {
+                self.load_file(path);
+            }
+
             _ => {}
         }
-
-        return true;
     }
 }
