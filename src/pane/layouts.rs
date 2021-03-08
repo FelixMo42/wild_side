@@ -47,3 +47,20 @@ pub fn layout<Event>(canvas: Canvas, selected: usize, layout: &Layout<Event>) {
         offset += size;
     });
 }
+
+//
+pub trait FlexPane<Event> {
+    fn get_layout(&self) -> &Layout<Event>;
+    fn get_selected_pane(&self) -> &dyn Pane<Event>;
+    fn get_selected_pane_mut(&mut self) -> &mut dyn Pane<Event>;
+}
+
+impl<Event> Pane<Event> for Box<dyn FlexPane<Event>> {
+    fn render(&self, canvas: Canvas, _selected: bool) {
+        layout(canvas, 0, self.get_layout());
+    }
+
+    fn event(&mut self, event: Event) {
+        self.get_selected_pane_mut().event(event);
+    }
+}

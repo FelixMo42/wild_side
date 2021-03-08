@@ -1,7 +1,9 @@
 use std::sync::mpsc::Sender;
-use crate::pane::{Canvas, LayoutConstraint, Pane, layout};
+use crate::pane::{LayoutConstraint, Pane, FlexPane, Layout};
 use crate::side::{Editor, Event};
 use crate::side::{FileMenu, TabBar};
+
+/// 
 
 ///
 pub struct Manager {
@@ -23,16 +25,23 @@ impl Manager {
         }
     }
 
-    pub fn get_selected_pane(&self) -> &dyn Pane<Event> {
+}
+
+impl FlexPane<Event> for Manager {
+    fn get_layout(&self) -> &Layout<Event> {
+        &self.layout
+    }
+
+    fn get_selected_pane(&self) -> &dyn Pane<Event> {
         self.layout[self.selected].0.as_ref()
     }
     
-    pub fn get_selected_pane_mut(&mut self) -> &mut dyn Pane<Event> {
+    fn get_selected_pane_mut(&mut self) -> &mut dyn Pane<Event> {
         self.layout[self.selected].0.as_mut()
     }
 }
 
-impl Pane<Event> for Manager {
+/*
     fn render(&self, canvas: Canvas, _selected: bool) {
         layout::<Event>(canvas, self.selected, &self.layout);
     }
@@ -51,4 +60,4 @@ impl Pane<Event> for Manager {
             _ => self.get_selected_pane_mut().event(event)
         };
     }
-}
+} */
