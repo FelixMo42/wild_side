@@ -1,43 +1,36 @@
 use std::sync::mpsc::Sender;
-use crate::pane::{LayoutConstraint, Pane, FlexPane, Layout};
-use crate::side::{Editor, Event};
-use crate::side::{FileMenu, TabBar};
+
+use crate::pane::*;
+use crate::side::*;
 
 /// 
 
 ///
 pub struct Manager {
-    layout: Vec<(Box<dyn Pane<Event>>, LayoutConstraint)>,
-    selected: usize,
+    layout: HorzFlexPane<Event>,
 }
 
 impl Manager {
     pub fn new(emiter: Sender<Event>) -> Manager {
         Manager {
-            layout: vec![
-                (Box::new(TabBar::new(vec![
-                    ('F', Box::new(FileMenu::new(emiter.clone()))),
-                    ('B', Box::new(FileMenu::new(emiter))),
-                ])), LayoutConstraint::Fixed(40)),
-                (Box::new(Editor::new("".to_string())), LayoutConstraint::Flex(1)),
-            ],
-            selected: 0,
+            layout: HorzFlexPane(0, vec![
+                (TabBar::new(vec![
+                    ('F', FileMenu::new(emiter)),
+                ]), FlexConstraint::Fixed(40)),
+                (Editor::new("".to_string()), FlexConstraint::Flex(1)),
+            ])
         }
     }
 
 }
 
-impl FlexPane<Event> for Manager {
-    fn get_layout(&self) -> &Layout<Event> {
-        &self.layout
+impl Pane<Event> for Manager {
+    fn render(&self, canvas: Canvas) {
+        self.layout.render(canvas);
     }
 
-    fn get_selected_pane(&self) -> &dyn Pane<Event> {
-        self.layout[self.selected].0.as_ref()
-    }
-    
-    fn get_selected_pane_mut(&mut self) -> &mut dyn Pane<Event> {
-        self.layout[self.selected].0.as_mut()
+    fn event(&mut self, event: Event) {
+        self.layout.event(event);
     }
 }
 

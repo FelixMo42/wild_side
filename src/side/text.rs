@@ -1,7 +1,8 @@
-use crate::color::{Style, GRAY2, GRAY5, GRAY8};
-use crate::pane::{Canvas, Pane};
-use crate::side::Event;
-use crate::util::Span;
+use crate::color::*;
+use crate::pane::*;
+use crate::side::*;
+use crate::util::*;
+
 use std::cmp::min;
 
 pub struct Text {
@@ -64,14 +65,14 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(text: String) -> Editor {
-        return Editor {
+    pub fn new(text: String) -> Box<Editor> {
+        return Box::new(Editor {
             text: Text::new(text),
             cursor: (0, 0).into(),
-        };
+        });
     }
 
-    pub fn load(path: String) -> Editor {
+    pub fn load(path: String) -> Box<Editor> {
         return Editor::new(std::fs::read_to_string(path).expect("could not read file!"));
     }
 
@@ -115,11 +116,11 @@ impl Editor {
         }
     }
 
-    fn get_line(&self, line: usize, len: usize) -> &str {
+    fn get_line(&self, line: usize, len: usize) -> String {
         let text = &self.text.lines[line];
         let end = text.char_indices().nth(len).unwrap_or((text.len(), ' ')).0;
 
-        return &text[..end];
+        return text[..end].to_string();
     }
 
     fn load_file(&mut self, path: String) {
@@ -129,8 +130,8 @@ impl Editor {
 }
 
 impl Pane<Event> for Editor {
-    fn render(&self, canvas: Canvas, selected: bool) {
-        canvas.style_area(&Style::new(Some(GRAY2), Some(GRAY8)), canvas.area());
+    fn render(&self, mut canvas: Canvas) {
+        // canvas.style_area(&Style::new(Some(GRAY2), Some(GRAY8)), canvas.area());
 
         let size = canvas.size();
 
@@ -138,21 +139,21 @@ impl Pane<Event> for Editor {
         let line_num_bar_style = GRAY5.clone().as_fg();
 
         for y in 0..min(size.y, self.text.len()) {
-            canvas.draw_line_with_style(
+            canvas.draw_line(
                 (0, y).into(),
-                format!("{:>1$}", y, line_num_bar_width - 1).as_str(),
-                &line_num_bar_style,
+                format!("{:>1$}", y, line_num_bar_width - 1),
+                // &line_num_bar_style,
             );
 
-            canvas.draw(
+            canvas.draw_line(
                 (line_num_bar_width, y).into(),
                 self.get_line(y, size.x - line_num_bar_width),
             );
         }
         
-        if selected {
+        /* if selected {
             canvas.set_cursor(self.cursor.add(4, 0));
-        }
+        } */
     }
 
     fn event(&mut self, event: Event) {

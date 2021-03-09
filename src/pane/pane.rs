@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 ///
 pub trait Pane<Event> {
     fn render(&self, canvas: Canvas);
-    fn event(&self, event: Event);
+    fn event(&mut self, event: Event);
 }
 
 ///
@@ -48,10 +48,16 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    /// accessing commands
     pub fn area(&self) -> Area {
         return self.area.zero();
     }
 
+    pub fn size(&self) -> Span {
+        return self.area.size();
+    }
+
+    /// drawing commands
     pub fn draw_char(&mut self, spot: Span, chr: char) {
         self.surface.lock().unwrap().set(self.area.of(spot), chr);
     }
@@ -73,8 +79,9 @@ impl Canvas {
         });
     }
 
+    /// resizing commands
     pub fn splitv(self, pos: usize) -> (Canvas, Canvas) {
-        let pos = pos + self.area.0.y;
+        let pos = self.area.0.y + pos;
 
         return (
             Canvas {
@@ -89,24 +96,17 @@ impl Canvas {
     }
 
     pub fn splith(self, pos: usize) -> (Canvas, Canvas) {
-        let leng = self.area.size().x;
+        let pos = self.area.0.x + pos;
 
         return (
             Canvas {
-                area: self.area.horizontal_slice(0, pos),
+                area: self.area.horizontal_slice(self.area.0.x, pos),
                 surface: self.surface.clone(),
             },
             Canvas {
-                area: self.area.horizontal_slice(pos, leng),
+                area: self.area.horizontal_slice(pos, self.area.1.x),
                 surface: self.surface.clone(),
             },
         );
-    }
-
-    pub fn ident(self) -> Canvas {
-        Canvas {
-            area: self.area,
-            surface: self.surface,
-        }
     }
 }
