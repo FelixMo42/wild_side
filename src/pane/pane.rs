@@ -1,49 +1,112 @@
-use crate::color::{GRAY0, GRAY9};
-use crate::pane::{Canvas, Surface};
+use crate::color::{GRAY5, GRAY9};
+use crate::pane::Surface;
 use crate::util::{Area, Span};
 
 use std::sync::{Arc, Mutex};
 
-/// A pane is a genaric building block of the ui
+///
 pub trait Pane<Event> {
-    fn render(&self, canvas: Canvas, selected: bool);
-    fn event(&mut self, event: Event);
+    fn render(&self, canvas: Canvas);
+    fn event(&self, event: Event);
 }
 
 ///
-pub struct PaneHandler<Event> {
+pub struct Document<Event> {
+    pane: Box<dyn Pane<Event>>,
     size: Span,
-    data: Surface,
-    root: Box<dyn Pane<Event>>,
+    surface: Arc<Mutex<Surface>>,
 }
 
-impl<Event> PaneHandler<Event> {
-    pub fn new(root: Box<dyn Pane<Event>>, size: Span) -> PaneHandler<Event> {
-        PaneHandler {
-            data: Surface::new(size, GRAY0, GRAY9),
+impl<Event> Document<Event> {
+    pub fn new(root: Box<dyn Pane<Event>>, size: Span) -> Document<Event> {
+        Document {
             size,
-            root,
+            pane: root,
+            surface: Arc::new(Mutex::new(Surface::new(size, &GRAY5, &GRAY9))),
         }
     }
 
-    fn area(&self) -> Area {
-        return self.size.area();
-    }
-
     pub fn render(&mut self) -> String {
-        let area = self.area();
+        self.pane.render(Canvas {
+            area: self.size.area(),
+            surface: self.surface.clone(),
+        });
 
-        let data = Arc::new(Mutex::new(&mut self.data));
-        let canvas = Canvas::new(data, area.clone());
-        canvas.clear(area);
-        self.root.render(canvas, true);
-
-        return self.data.render(area);
+        return self.surface.lock().unwrap().render(self.size.area());
     }
 
-    pub fn emit_event(&mut self, event: Event) -> String {
-        let changed = self.root.event(event);
-
+    pub fn emit(&mut self, event: Event) -> String {
+        self.pane.event(event);
         return self.render();
+    }
+}
+
+///
+pub struct Canvas {
+    area: Area,
+    surface: Arc<Mutex<Surface>>,
+}
+
+impl Canvas {
+    pub fn area(&self) -> Area {
+        return self.area.zero();
+    }
+
+    pub fn draw_char(&mut self, spot: Span, chr: char) {
+        self.surface.lock().unwrap().set(self.area.of(spot), chr);
+    }
+
+    pub fn draw_line(&mut self, spot: Span, line: String) {
+        let mut surface = self.surface.lock().unwrap();
+        let spot = self.area.of(spot);
+        let max_len = self.area.1.x - spot.x;
+
+        for (x, chr) in line.chars().take(max_len).enumerate() {
+            surface.set((spot.x + x, spot.y).into(), chr);
+        }
+    }
+
+    pub fn draw_pane<Event>(self, pane: &Box<dyn Pane<Event>>) {
+        pane.render(Canvas {
+            area: self.area,
+            surface: self.surface,
+        });
+    }
+
+    pub fn splitv(self, pos: usize) -> (Canvas, Canvas) {
+        let pos = pos + self.area.0.y;
+
+        return (
+            Canvas {
+                area: self.area.vertical_slice(self.area.0.y, pos),
+                surface: self.surface.clone(),
+            },
+            Canvas {
+                area: self.area.vertical_slice(pos, self.area.1.y),
+                surface: self.surface.clone(),
+            },
+        );
+    }
+
+    pub fn splith(self, pos: usize) -> (Canvas, Canvas) {
+        let leng = self.area.size().x;
+
+        return (
+            Canvas {
+                area: self.area.horizontal_slice(0, pos),
+                surface: self.surface.clone(),
+            },
+            Canvas {
+                area: self.area.horizontal_slice(pos, leng),
+                surface: self.surface.clone(),
+            },
+        );
+    }
+
+    pub fn ident(self) -> Canvas {
+        Canvas {
+            area: self.area,
+            surface: self.surface,
+        }
     }
 }

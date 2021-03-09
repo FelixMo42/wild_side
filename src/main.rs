@@ -1,132 +1,105 @@
-use surface::Surface;
-use color::{GRAY5, GRAY9};
+use pane::*;
+use util::Span;
+
+use std::{
+    io::{stdin, stdout, Write},
+    sync::mpsc::channel,
+    thread,
+};
+use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-use util::{Area, Span};
-use std::io::{Write, stdin, stdout};
 use termion::screen::*;
 use termion::terminal_size;
 
-pub mod surface;
 pub mod color;
+pub mod pane;
 pub mod util;
 
-enum Pane {
-    Text(char),
+///
+pub struct FillPane {
+    chr: char,
 }
 
-struct Application {
-    panes: Vec<Pane>,
-    areas: Vec<Area>,
-    surface: Surface,
+impl FillPane {
+    pub fn new(chr: char) -> Box<dyn pane::Pane<Event>> {
+        return Box::new(FillPane { chr });
+    }
 }
 
-impl Application {
-    fn new(pane: Pane, size: Span) -> Application {
-        Application {
-            surface: Surface::new(size, &GRAY5, &GRAY9),
-            panes: vec![ pane ],
-            areas: vec![ size.area() ],
-        }
-    }
-
-    fn layout(&mut self, pane_id: usize) {
-    }
-
-    fn render(&mut self, pane_id: usize) -> String {
-        let pane = &self.panes[pane_id];
-        let area = &self.areas[pane_id];
-
-        match pane {
-            Pane::Text(chr) => {
-                for x in area.0.x..area.1.x {
-                    for y in area.0.y..area.1.y {
-                        self.surface.set((x, y).into(), chr.clone());
-                    }
-                }
+impl<Event> pane::Pane<Event> for FillPane {
+    fn render(&self, mut canvas: Canvas) {
+        let area = canvas.area();
+        for x in area.0.x..area.1.x {
+            for y in area.0.y..area.1.y {
+                canvas.draw_char((x, y).into(), self.chr);
             }
         }
+    }
 
-        return self.surface.render(area.clone());
+    fn event(&self, _event: Event) {}
+}
+
+///
+pub struct Ide {
+    layout: Box<dyn pane::Pane<Event>>,
+}
+
+impl Ide {
+    pub fn new() -> Ide {
+        Ide {
+            layout: Box::new(VertFlexPane(
+                0,
+                vec![
+                    //(FillPane::new('#'), FlexConstraint::Fixed(10)),
+                    (FillPane::new('-'), FlexConstraint::Flex(1)),
+                    (FillPane::new('#'), FlexConstraint::Fixed(1)),
+                ],
+            )),
+        }
+    }
+}
+
+impl pane::Pane<Event> for Ide {
+    fn event(&self, event: Event) {
+        if event == Event::Key(Key::Char('\t')) {
+        } else {
+            self.layout.event(event);
+        }
+    }
+
+    fn render(&self, canvas: Canvas) {
+        self.layout.render(canvas);
     }
 }
 
 fn main() {
-    let (x, y) = terminal_size().expect("could not get size of terminal!");
     let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-    let size: Span = (x as usize, y as usize).into();
 
-    let mut app = Application::new(Pane::Text('#'), size);
-
-    screen.write(app.render(0).as_bytes()).unwrap();
-
-    for _event in stdin().events() {
-        break;
-    }
-}
-
-/* extern crate ignore;
-extern crate termion;
-extern crate tokio;
-
-pub mod color;
-pub mod pane;
-pub mod side;
-pub mod util;
-
-use crate::pane::*;
-use crate::side::*;
-use std::error::Error;
-use std::io::{stdin, stdout, Write};
-use std::thread;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-use termion::screen::*;
-use termion::terminal_size;
-
-fn main() -> Result<(), Box<dyn Error + 'static>> {
-    let (x, y) = terminal_size().expect("could not get size of terminal!");
-
-    let (tx, rx) = std::sync::mpsc::channel::<Event>();
-
-    let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-    let mut root: dyn Pane<Event> = Box::new(Manager::new(tx.clone());
-    let mut handler = PaneHandler::new(root, (x as usize, y as usize).into());
-
-    screen.write(format!("{}", termion::cursor::SteadyBar).as_bytes())?;
-    screen.write(handler.render().as_bytes())?;
-    screen.flush()?;
-
+    let (sender, recver) = channel::<Event>();
     thread::spawn(move || {
         for event in stdin().events() {
             if let Ok(event) = event {
-                type TEvent = termion::event::Event;
-                tx.send(match event {
-                    TEvent::Key(Key::Char('\n')) => Event::Return,
-                    TEvent::Key(Key::Char(chr)) => Event::Char(chr),
-                    TEvent::Key(Key::Backspace) => Event::Delete,
-                    TEvent::Key(Key::Delete) => Event::Delete,
-                    TEvent::Key(Key::Esc) => Event::Escape,
-                    TEvent::Key(Key::Up) => Event::Up,
-                    TEvent::Key(Key::Down) => Event::Down,
-                    TEvent::Key(Key::Left) => Event::Left,
-                    TEvent::Key(Key::Right) => Event::Right,
-                    _ => Event::Right,
-                }).unwrap();
+                sender.send(event).unwrap();
             }
         }
     });
 
-    for event in rx.into_iter() {
-        match event {
-            Event::Escape => break,
-            e => {
-                screen.write(handler.emit_event(e).as_bytes())?;
-                screen.flush()?;
-            }
-        }
-    }
+    let (x, y) = terminal_size().expect("could not get terminal size!");
+    let size = Span::new(x as usize, y as usize);
 
-    return Ok(());
-} */
+    let root = Box::new(Ide::new());
+    let mut doc = Document::new(root, size);
+
+    screen.write(doc.render().as_bytes()).unwrap();
+    screen.flush().unwrap();
+
+    for event in recver.into_iter() {
+        if event == Event::Key(Key::Esc) {
+            break;
+        }
+
+        screen.write(doc.emit(event).as_bytes()).unwrap();
+        screen.flush().unwrap();
+    }
+}
