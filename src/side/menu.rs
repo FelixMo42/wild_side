@@ -129,9 +129,9 @@ impl Menu {
 
         if len == 0 {
             self.selected = 0;
+        } else  {
+            self.selected = min(self.selected, len - 1);
         }
-
-        self.selected = min(self.selected, len - 1);
     }
 
     pub fn event(&mut self, event: Event) -> Option<String> {

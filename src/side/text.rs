@@ -100,8 +100,10 @@ impl Editor {
 
     fn move_cursor_left(&mut self) {
         if self.cursor.x == 0 {
-            self.move_cursor_up();
-            self.cursor.x = self.get_line_length();
+            if self.cursor.y != 0 {
+                self.move_cursor_up();
+                self.cursor.x = self.get_line_length();
+            }
         } else {
             self.cursor.x -= 1;
         }
@@ -148,7 +150,7 @@ impl Pane<Event> for Editor {
                     (0, y).into(),
                     format!("{:>1$}", y, line_num_bar_width - 1).chars(),
                     THEME.disabled(0).as_fg()
-                )
+                );
             }
 
             canvas.draw_line(
