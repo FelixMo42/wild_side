@@ -1,9 +1,13 @@
+use std::cmp::min;
+
 use crate::pane::*;
 use crate::side::*;
 use crate::color::*;
 
 pub struct Menu {
     selector: String,
+    selected: usize,
+    filtered: Vec<usize>,
     options: Vec<String>,
 }
 
@@ -11,12 +15,54 @@ impl Menu {
     pub fn new(options: Vec<String>) -> Menu {
         Menu {
             selector: "".to_string(),
+            filtered: (0..options.len()).collect(),
+            selected: 0,
             options,
         }
     }
 
+    pub fn reset_filtered(&mut self) {
+        self.filtered = (0..self.options.len()).collect()
+    }
+
+    pub fn fuzzy(&self, i: usize) -> Option<(usize, usize)> {
+        let mut target = self.options[i].chars().peekable();
+        let mut selector = self.selector.chars().peekable();
+        
+        let mut diff = 0;
+
+        while selector.peek() != None && target.peek() != None {
+            if selector.peek() == target.peek() {
+                selector.next();
+                target.next();
+            } else {
+                target.next();
+                diff += 1;
+            }
+        }
+
+        if target.peek() == None && selector.peek() != None {
+            return None;
+        }
+
+        return Some((diff, i));
+    }
+
+    pub fn filter(&mut self) {
+        let mut diffs = self.filtered.iter()
+            .map(|i| i.clone())
+            .filter_map(|i| self.fuzzy(i))
+            .collect::<Vec<(usize, usize)>>();
+        
+        diffs.sort();
+       
+        self.filtered = diffs.iter()
+            .map(|(_diff, i)| i.clone())
+            .collect();
+    }
+
     pub fn get_selected(&self) -> usize {
-        self.selector.parse::<usize>().unwrap_or(0)
+        return self.selected;
     }
 
     pub fn render(&self, mut canvas: Canvas, focused: bool) {
@@ -26,8 +72,9 @@ impl Menu {
 
         let selected = self.get_selected();
 
-        for (y, file) in self.options.iter().enumerate() {
-            let path = file
+        for (y, i) in self.filtered.iter().enumerate() {
+            // dont show the whole path
+            let path = self.options[i.clone()]
                 .chars()
                 .skip(2)
                 .take(size.x - 4 - 1)
@@ -77,23 +124,59 @@ impl Menu {
         self.selector = "".to_string();
     }
 
+    pub fn clamp_selected(&mut self) {
+        let len = self.filtered.len();
+
+        if len == 0 {
+            self.selected = 0;
+        }
+
+        self.selected = min(self.selected, len - 1);
+    }
+
     pub fn event(&mut self, event: Event) -> Option<String> {
         match event {
             Event::Char(c) => {
                 self.selector.push(c);
-                None
+                self.filter();
+                self.clamp_selected();
             },
+
             Event::Delete => {
                 let leng = self.selector.chars().count();
 
                 if leng > 0 {
                     self.selector.remove(leng - 1);
+                    self.reset_filtered();
+                    self.filter();
+                    self.clamp_selected();
                 }
+            },
 
-                None
+            Event::Return => {
+                let selected = self.get_selected();
+
+                self.reset_filtered();
+                self.selected = 0;
+
+                return self.options.get(selected).map(|opt| opt.clone());
+            },
+
+            Event::Up => {
+                if self.selected > 0 {
+                    self.selected -= 1;
+                }
+            },
+
+            Event::Down => {
+                self.selected += 1;
+                self.clamp_selected();
             }
-            Event::Return => Some(self.options[self.get_selected()].clone()),
-            _ => None,
+            _ => {},
         }
+
+        return None;
     }
+
+
 }

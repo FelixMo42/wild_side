@@ -5,10 +5,10 @@ My dream rust ide (wip)
 * Move cursors with arrow keys (with wrapping!)
 * Delete/insert text
 * Dont worry if you mess it up, you cant save! (also definitly a feature)
-* File menu side bar to choose with file to edit
+* File menu side bar to choose with file to edit using fuzzy search
 
 ## Usage
-Press tab to switch focus bettween text erea and file menu. When if file menu type in the number of the file you want to use and press enter to open it.
+Press tab to switch focus bettween text area and file menu. File menu uses fuzzy search to find files. Use up and down arrows to navigate options. Press enter to select.
 
 ## Parts
 ### Pane
