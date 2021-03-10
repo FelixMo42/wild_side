@@ -53,8 +53,10 @@ impl FileMenu {
 }
 
 impl Pane<Event> for FileMenu {
-    fn render(&self, mut canvas: Canvas) {
+    fn render(&self, mut canvas: Canvas, _focused: bool) {
         let size = canvas.size();
+
+        canvas.style(THEME.style(1));
 
         for (y, file) in self.files.iter().enumerate() {
             let path = file
@@ -63,37 +65,28 @@ impl Pane<Event> for FileMenu {
                 .take(size.x - 4 - 1)
                 .collect::<String>();
 
-            canvas.draw_line(
+            // draw line number
+            canvas.draw_line_with_style(
                 (1, y + 1).into(),
-                format!("{:>2}", y),
-                // &GRAY6.as_fg(),
+                format!("{:>2}", y).chars(),
+                THEME.disabled(1).as_fg(),
             );
 
-            canvas.draw_line(
-                (4, y + 1).into(),
-                path,
-                // &GRAY3.as_fg()
-            );
-
-            // canvas.style_area(&GRAY9.as_bg(), canvas.area());
+            // draw line
+            canvas.draw_line((4, y + 1).into(), path.chars());
         }
 
-        canvas.draw_line(
+        // draw prompt
+        canvas.draw_line_with_style(
             (4, 0).into(),
-            self.selector.clone(),
-            // &GRAY2.as_fg()
+            self.selector.chars(),
+            THEME.focused(1).as_fg()
         );
-
-        /* if selected {
-            canvas.set_cursor((4 + self.selector.chars().count(), 0).into())
-        } */
     }
 
     fn event(&mut self, event: Event) {
         match event {
-            Event::Char(c @ ('0'..='9')) => {
-                self.selector.push(c);
-            },
+            Event::Char(c @ ('0'..='9')) => self.selector.push(c),
             Event::Delete => self.delete(),
             Event::Return => self.open_selected_file(),
             _ => (),

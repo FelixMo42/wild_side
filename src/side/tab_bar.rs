@@ -1,7 +1,6 @@
-use crate::color::{GRAY3, GRAY8, GRAY9};
 use crate::pane::*;
 use crate::side::*;
-use crate::util::*;
+use crate::color::*;
 
 pub struct TabBar {
     tabs: Vec<(char, Box<dyn Pane<Event>>)>,
@@ -18,24 +17,26 @@ impl TabBar {
 }
 
 impl Pane<Event> for TabBar {
-    fn render(&self, canvas: Canvas) {
-        let (mut left, right) = canvas.splith(4);
-            
-        // canvas.style_area(&GRAY8.as_bg(), area);
-        // canvas.style_area(&GRAY3.as_fg(), area);
-        
+    fn render(&self, canvas: Canvas, focused: bool) {
+        let (mut left, right) = canvas.splith(3);
+        let area = left.area();
+
         for (i, c) in self.tabs.iter().enumerate() {
-            left.draw_line((1, i * 3 + 1).into(), c.0.to_string());
             
-            /* if i == open {
-                canvas.style_area(
-                    &GRAY9.as_bg(),
-                    area.vertical_slice(i * 3, i * 3 + 3)
+            if i == self.selected {
+                left.style_area(
+                    area.vertical_slice(i * 3, i * 3 + 3),
+                    Style::new(
+                        Some(THEME.normal(1)),
+                        Some(THEME.bg(1))
+                    )
                 );
-            } */
+            }
+            
+            left.draw_char((1, i * 3 + 1).into(), c.0);
         }
 
-        right.draw_pane(&self.tabs[self.selected].1);
+        right.draw_pane(&self.tabs[self.selected].1, focused);
     }
 
     fn event(&mut self, event: Event) {

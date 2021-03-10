@@ -26,6 +26,38 @@ impl Color {
     pub fn as_bg(self) -> Style {
         return Style::bg(self);
     }
+
+    pub fn brighten(&self, p: f32) -> Color {
+        let r = 1.0 - p;
+        Color {
+            r: (self.r as f32 * r + 255.0 * p) as u8,
+            g: (self.g as f32 * r + 255.0 * p) as u8,
+            b: (self.b as f32 * r + 255.0 * p) as u8,
+        }
+    }
+    
+    pub fn darken(&self, p: f32) -> Color {
+        let r = 1.0 - p;
+        Color {
+            r: (self.r as f32 * r) as u8,
+            g: (self.g as f32 * r) as u8,
+            b: (self.b as f32 * r) as u8,
+        }
+    }
+
+    pub fn layer(&self, layer: usize) -> Color {
+        self.brighten(layer as f32 * 0.025)
+    }
+}
+
+impl Into<Color> for (u8, u8, u8) {
+    fn into(self) -> Color {
+        Color {
+            r: self.0,
+            g: self.1,
+            b: self.2
+        }
+    }
 }
 
 ///
@@ -48,100 +80,38 @@ impl Style {
     }
 }
 
-pub const GRAY0: Color = Color {
-    r: 215,
-    g: 221,
-    b: 227,
-};
-pub const GRAY1: Color = Color {
-    r: 178,
-    g: 185,
-    b: 192,
-};
-pub const GRAY2: Color = Color {
-    r: 140,
-    g: 148,
-    b: 156,
-};
-pub const GRAY3: Color = Color {
-    r: 116,
-    g: 125,
-    b: 135,
-};
-pub const GRAY4: Color = Color {
-    r: 93,
-    g: 102,
-    b: 113,
-};
-pub const GRAY5: Color = Color {
-    r: 72,
-    g: 79,
-    b: 89,
-};
-pub const GRAY6: Color = Color {
-    r: 60,
-    g: 67,
-    b: 77,
-};
-pub const GRAY7: Color = Color {
-    r: 48,
-    g: 54,
-    b: 62,
-};
-pub const GRAY8: Color = Color {
-    r: 33,
-    g: 38,
-    b: 45,
-};
-pub const GRAY9: Color = Color {
-    r: 22,
-    g: 27,
-    b: 34,
-};
+///
+pub struct Theme {
+    pub base: Color
+}
 
-pub const PINK0: Color = Color {
-    r: 255,
-    g: 218,
-    b: 236,
+impl Theme {
+    pub fn bg(&self, layer: usize) -> Color {
+        self.base.layer(layer)
+    }
+
+    
+    pub fn focused(&self, layer: usize) -> Color {
+        self.base.layer(layer).brighten(0.87)
+    }
+    
+    pub fn normal(&self, layer: usize) -> Color {
+        self.base.layer(layer).brighten(0.6)
+    }
+
+    pub fn disabled(&self, layer: usize) -> Color {
+        self.base.layer(layer).brighten(0.38)
+    }
+
+
+    pub fn style(&self, layer: usize) -> Style {
+        Style {
+            fg: Some(self.normal(layer)),
+            bg: Some(self.bg(layer)),
+        }
+    }
+}
+
+pub const THEME: Theme = Theme {
+    base: Color { r: 33, g: 33, b: 33 }
 };
-pub const PINK1: Color = Color {
-    r: 255,
-    g: 190,
-    b: 221,
-};
-pub const PINK2: Color = Color {
-    r: 255,
-    g: 155,
-    b: 206,
-};
-pub const PINK3: Color = Color {
-    r: 247,
-    g: 120,
-    b: 186,
-};
-pub const PINK4: Color = Color {
-    r: 219,
-    g: 97,
-    b: 162,
-};
-pub const PINK5: Color = Color {
-    r: 191,
-    g: 75,
-    b: 138,
-};
-pub const PINK6: Color = Color {
-    r: 158,
-    g: 54,
-    b: 112,
-};
-pub const PINK7: Color = Color {
-    r: 125,
-    g: 36,
-    b: 87,
-};
-pub const PINK8: Color = Color {
-    r: 94,
-    g: 16,
-    b: 62,
-};
-pub const PINK9: Color = Color { r: 66, g: 6, b: 42 };

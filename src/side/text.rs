@@ -130,30 +130,27 @@ impl Editor {
 }
 
 impl Pane<Event> for Editor {
-    fn render(&self, mut canvas: Canvas) {
-        // canvas.style_area(&Style::new(Some(GRAY2), Some(GRAY8)), canvas.area());
-
+    fn render(&self, mut canvas: Canvas, focused: bool) {
         let size = canvas.size();
 
         let line_num_bar_width = 4;
-        let line_num_bar_style = GRAY5.clone().as_fg();
-
+        
         for y in 0..min(size.y, self.text.len()) {
-            canvas.draw_line(
+            canvas.draw_line_with_style(
                 (0, y).into(),
-                format!("{:>1$}", y, line_num_bar_width - 1),
-                // &line_num_bar_style,
+                format!("{:>1$}", y, line_num_bar_width - 1).chars(),
+                THEME.disabled(0).as_fg()
             );
 
             canvas.draw_line(
                 (line_num_bar_width, y).into(),
-                self.get_line(y, size.x - line_num_bar_width),
+                self.get_line(y, size.x - line_num_bar_width).chars(),
             );
         }
         
-        /* if selected {
-            canvas.set_cursor(self.cursor.add(4, 0));
-        } */
+        if focused {
+            // canvas.set_cursor(self.cursor.add(4, 0));
+        }
     }
 
     fn event(&mut self, event: Event) {

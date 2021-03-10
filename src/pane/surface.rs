@@ -1,20 +1,22 @@
-use crate::color::{Color, Style};
-use crate::util::{Area, Span, Vec2d};
+use crate::color::Color;
+use crate::util::*;
+
+use std::sync::{Arc, Mutex};
 
 ///
 pub struct Surface {
-    fg: Vec2d<Color>,
-    bg: Vec2d<Color>,
-    chars: Vec2d<char>,
+    pub fg: Vec2d<Color>,
+    pub bg: Vec2d<Color>,
+    pub chars: Vec2d<char>,
 }
 
 impl Surface {
-    pub fn new(size: Span, fg: &Color, bg: &Color) -> Surface {
-        Surface {
+    pub fn new(size: Span, fg: &Color, bg: &Color) -> Arc<Mutex<Surface>> {
+        Arc::new(Mutex::new(Surface {
             fg: Vec2d::new(size, fg.clone()),
             bg: Vec2d::new(size, bg.clone()),
             chars: Vec2d::new(size, ' '),
-        }
+        }))
     }
 
     pub fn set(&mut self, spot: Span, chr: char) {
