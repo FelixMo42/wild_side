@@ -8,6 +8,7 @@ pub struct Surface {
     pub fg: Vec2d<Color>,
     pub bg: Vec2d<Color>,
     pub chars: Vec2d<char>,
+    pub cursor: Span,
 }
 
 impl Surface {
@@ -16,6 +17,7 @@ impl Surface {
             fg: Vec2d::new(size, fg.clone()),
             bg: Vec2d::new(size, bg.clone()),
             chars: Vec2d::new(size, ' '),
+            cursor: (0, 0).into(),
         }))
     }
 
@@ -59,6 +61,8 @@ impl Surface {
                 cmd.push(self.chars.get(x, y));
             }
         }
+
+        cmd += cursor_cmd(self.cursor.x, self.cursor.y).as_str();
 
         return cmd;
     }

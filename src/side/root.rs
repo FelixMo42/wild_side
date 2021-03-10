@@ -19,7 +19,6 @@ impl Manager {
             ])
         }
     }
-
 }
 
 impl Pane<Event> for Manager {

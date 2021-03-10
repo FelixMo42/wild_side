@@ -132,6 +132,11 @@ impl Canvas {
         }
     }
 
+    /// cursor
+    pub fn set_cursor(&mut self, cursor: Span) {
+        self.surface.lock().unwrap().cursor = cursor.shift(&self.area.0);
+    }
+
     /// sub canvasing commands
     pub fn splitv(self, pos: usize) -> (Canvas, Canvas) {
         let pos = self.area.0.y + pos;

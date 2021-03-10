@@ -11,6 +11,7 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
 use termion::terminal_size;
+use termion::cursor::SteadyBar;
 
 pub mod color;
 pub mod pane;
@@ -19,6 +20,7 @@ pub mod util;
 
 fn main() {
     let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    screen.write( format!("{}", SteadyBar).as_bytes() ).unwrap();
 
     let (emiter, recver) = channel::<Event>();
     

@@ -149,7 +149,7 @@ impl Pane<Event> for Editor {
         }
         
         if focused {
-            // canvas.set_cursor(self.cursor.add(4, 0));
+            canvas.set_cursor(self.cursor.add(4, 0));
         }
     }
 

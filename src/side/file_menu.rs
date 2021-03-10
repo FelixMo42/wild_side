@@ -53,7 +53,7 @@ impl FileMenu {
 }
 
 impl Pane<Event> for FileMenu {
-    fn render(&self, mut canvas: Canvas, _focused: bool) {
+    fn render(&self, mut canvas: Canvas, focused: bool) {
         let size = canvas.size();
 
         canvas.style(THEME.style(1));
@@ -82,6 +82,10 @@ impl Pane<Event> for FileMenu {
             self.selector.chars(),
             THEME.focused(1).as_fg()
         );
+
+        if focused {
+            canvas.set_cursor((4 + self.selector.chars().count(), 0).into());
+        }
     }
 
     fn event(&mut self, event: Event) {
