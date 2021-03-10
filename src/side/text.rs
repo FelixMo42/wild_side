@@ -124,7 +124,8 @@ impl Editor {
     }
 
     fn load_file(&mut self, path: String) {
-        self.text = Text::new(std::fs::read_to_string(path).expect("could not open file"));
+        let text = std::fs::read_to_string(path).expect("could not open file");
+        self.text = Text::new(text);
         self.cursor = (0, 0).into();
     }
 }
@@ -136,11 +137,19 @@ impl Pane<Event> for Editor {
         let line_num_bar_width = 4;
         
         for y in 0..min(size.y, self.text.len()) {
-            canvas.draw_line_with_style(
-                (0, y).into(),
-                format!("{:>1$}", y, line_num_bar_width - 1).chars(),
-                THEME.disabled(0).as_fg()
-            );
+            if self.cursor.y == y && focused {
+                canvas.draw_line_with_style(
+                    (0, y).into(),
+                    format!("{:>1$}", y, line_num_bar_width - 1).chars(),
+                    THEME.normal(0).as_fg()
+                );
+            } else {
+                canvas.draw_line_with_style(
+                    (0, y).into(),
+                    format!("{:>1$}", y, line_num_bar_width - 1).chars(),
+                    THEME.disabled(0).as_fg()
+                )
+            }
 
             canvas.draw_line(
                 (line_num_bar_width, y).into(),

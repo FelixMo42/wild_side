@@ -124,16 +124,19 @@ impl<Event> Pane<Event> for HorzFlexPane<Event> {
         let area = canvas.area();
         let char_per_flex = char_per_flex(&self.1, area.1.x);
 
-        self.1.iter().enumerate().fold(canvas, |canvas, (i, (pane, constraint))| {
-            let (top, bottom) = canvas.splith(match constraint {
-                FlexConstraint::Fixed(size) => size.clone(),
-                FlexConstraint::Flex(flex) => flex * char_per_flex,
-            });
-            
-            top.draw_pane(pane, focused && i == self.0);
+        self.1
+            .iter()
+            .enumerate()
+            .fold(canvas, |canvas, (i, (pane, constraint))| {
+                let (top, bottom) = canvas.splith(match constraint {
+                    FlexConstraint::Fixed(size) => size.clone(),
+                    FlexConstraint::Flex(flex) => flex * char_per_flex,
+                });
+                
+                top.draw_pane(pane, focused && i == self.0);
 
-            return bottom;
-        });
+                return bottom;
+            });
     }
 
     fn event(&mut self, event: Event) {
