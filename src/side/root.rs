@@ -1,54 +1,41 @@
 use std::sync::mpsc::Sender;
-use crate::pane::{Canvas, LayoutConstraint, Pane, layout};
-use crate::side::{Editor, Event};
-use crate::side::{FileMenu, TabBar};
+
+use crate::pane::*;
+use crate::side::*;
 
 ///
 pub struct Manager {
-    layout: Vec<(Box<dyn Pane<Event>>, LayoutConstraint)>,
-    selected: usize,
+    layout: HorzFlexPane<Event>,
 }
 
 impl Manager {
     pub fn new(emiter: Sender<Event>) -> Manager {
         Manager {
-            layout: vec![
-                (Box::new(TabBar::new(vec![
-                    ('F', Box::new(FileMenu::new(emiter.clone()))),
-                    ('B', Box::new(FileMenu::new(emiter))),
-                ])), LayoutConstraint::Fixed(40)),
-                (Box::new(Editor::new("".to_string())), LayoutConstraint::Flex(1)),
-            ],
-            selected: 0,
+            layout: HorzFlexPane(0, vec![
+                (TabBar::new(vec![
+                    ('F', FileMenu::new(emiter)),
+                ]), FlexConstraint::Fixed(33)),
+                (Editor::new("".to_string()), FlexConstraint::Flex(1)),
+            ])
         }
-    }
-
-    pub fn get_selected_pane(&self) -> &dyn Pane<Event> {
-        self.layout[self.selected].0.as_ref()
-    }
-    
-    pub fn get_selected_pane_mut(&mut self) -> &mut dyn Pane<Event> {
-        self.layout[self.selected].0.as_mut()
     }
 }
 
 impl Pane<Event> for Manager {
-    fn render(&self, canvas: Canvas, _selected: bool) {
-        layout::<Event>(canvas, self.selected, &self.layout);
+    fn render(&self, canvas: Canvas, focused: bool) {
+        self.layout.render(canvas, focused);
     }
 
     fn event(&mut self, event: Event) {
         match event {
+            Event::OpenFile(_) => {
+                self.layout.next();
+                self.layout.event(event);
+            },
             Event::Char('\t') => {
-                self.selected = (self.selected + 1) % 2;
-            }
-
-            Event::OpenFile(path) => {
-                self.selected = 1;
-                self.get_selected_pane_mut().event(Event::OpenFile(path));
-            }
-
-            _ => self.get_selected_pane_mut().event(event)
-        };
+                self.layout.next();
+            },
+            _ => self.layout.event(event)
+        }
     }
 }

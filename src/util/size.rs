@@ -64,18 +64,23 @@ impl Area {
         };
     }
 
+    pub fn zero(&self) -> Area {
+        return Area::new((0, 0).into(), self.size());
+    }
+
     pub fn horizontal_slice(&self, start: usize, end: usize) -> Area {
         return Area::new((start, self.0.y).into(), (end, self.1.y).into());
     }
-    
+
     pub fn vertical_slice(&self, start: usize, end: usize) -> Area {
         return Area::new((self.0.x, start).into(), (self.1.x, end).into());
     }
 
     pub fn shrink(&self, a: Span, b: Span) -> Area {
-        return Area::new(
-            self.0.shift(&a),
-            self.1.unshift(&b)
-        )
+        return Area::new(self.0.shift(&a), self.1.unshift(&b));
+    }
+
+    pub fn of(&self, spot: Span) -> Span {
+        return spot.shift(&self.0);
     }
 }

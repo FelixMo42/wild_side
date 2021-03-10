@@ -1,11 +1,11 @@
 mod pane;
 pub use pane::*;
 
-mod canvas;
-pub use canvas::*;
-
 mod surface;
 pub use surface::*;
 
-mod layouts;
-pub use layouts::*;
+mod layout;
+pub use layout::*;
+
+mod fill_pane;
+pub use fill_pane::*;

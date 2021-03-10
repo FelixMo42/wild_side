@@ -1,68 +1,65 @@
-extern crate ignore;
-extern crate termion;
-extern crate tokio;
+use pane::*;
+use side::*;
+use util::*;
+
+use std::io::{stdin, stdout, Write};
+use std::sync::mpsc::channel;
+use std::thread;
+
+use termion::event::{Key, Event as TEvent};
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::screen::*;
+use termion::terminal_size;
+use termion::cursor::SteadyBar;
 
 pub mod color;
 pub mod pane;
 pub mod side;
 pub mod util;
 
-use crate::pane::*;
-use crate::side::*;
-use std::error::Error;
-use std::io::{stdin, stdout, Write};
-use std::thread;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-use termion::screen::*;
-use termion::terminal_size;
-
-fn main() -> Result<(), Box<dyn Error + 'static>> {
-    let (x, y) = terminal_size().expect("could not get size of terminal!");
-
-    let (tx, rx) = std::sync::mpsc::channel::<Event>();
-
+fn main() {
     let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-    let mut handler = PaneHandler::new(
-        Box::new(Manager::new(tx.clone())),
-        (x as usize, y as usize).into(),
-    );
+    screen.write( format!("{}", SteadyBar).as_bytes() ).unwrap();
 
-    screen.write(format!("{}", termion::cursor::SteadyBar).as_bytes())?;
-    screen.write(handler.render().as_bytes())?;
-    screen.flush()?;
+    let (emiter, recver) = channel::<Event>();
+    
+    let (x, y) = terminal_size().expect("could not get terminal size!");
+    let size = Span::new(x as usize, y as usize);
 
+    let root = Box::new( Manager::new(emiter.clone()) );
+    let mut doc = Document::new(root, size);
+    
     thread::spawn(move || {
         for event in stdin().events() {
             if let Ok(event) = event {
-                type TEvent = termion::event::Event;
-                tx.send(match event {
-                    TEvent::Key(Key::Char('\n')) => Event::Return,
-                    TEvent::Key(Key::Char(chr)) => Event::Char(chr),
-                    TEvent::Key(Key::Backspace) => Event::Delete,
-                    TEvent::Key(Key::Delete) => Event::Delete,
+                emiter.send(match event {
                     TEvent::Key(Key::Esc) => Event::Escape,
+                    TEvent::Key(Key::Backspace) => Event::Delete,
+                    TEvent::Key(Key::Char('\n')) => Event::Return,
+
                     TEvent::Key(Key::Up) => Event::Up,
                     TEvent::Key(Key::Down) => Event::Down,
                     TEvent::Key(Key::Left) => Event::Left,
                     TEvent::Key(Key::Right) => Event::Right,
-                    _ => Event::Return
+
+                    TEvent::Key(Key::Char(c)) => Event::Char(c),
+                    
+                    _ => Event::Up,
                 }).unwrap();
-                // tx.send(event).unwrap();
             }
         }
     });
 
-    for event in rx.into_iter() {
-        match event {
-            Event::Escape => break,
-            e => {
-                screen.write(handler.emit_event(e).as_bytes())?;
-                screen.flush()?;
-            }
-        }
-    }
+    screen.write(doc.render().as_bytes()).unwrap();
+    screen.flush().unwrap();
 
-    return Ok(());
+    for event in recver.into_iter() {
+        if event == Event::Escape {
+            break;
+        }
+
+        screen.write(doc.emit(event).as_bytes()).unwrap();
+        screen.flush().unwrap();
+    }
 }

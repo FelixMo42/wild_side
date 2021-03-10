@@ -1,75 +1,28 @@
-use crate::color::{Color, Style};
-use crate::util::{Area, Span, Vec2d};
+use crate::color::Color;
+use crate::util::*;
+
+use std::sync::{Arc, Mutex};
 
 ///
 pub struct Surface {
-    fg: Vec2d<Color>,
-    bg: Vec2d<Color>,
-    chars: Vec2d<char>,
-    cursor: Span,
-}
-
-fn cursor_cmd(x: usize, y: usize) -> String {
-    format!("\x1b[{};{}H", y + 1, x + 1)
+    pub fg: Vec2d<Color>,
+    pub bg: Vec2d<Color>,
+    pub chars: Vec2d<char>,
+    pub cursor: Span,
 }
 
 impl Surface {
-    pub fn new(size: Span, fg: Color, bg: Color) -> Surface {
-        Surface {
-            fg: Vec2d::new(size, fg),
-            bg: Vec2d::new(size, bg),
+    pub fn new(size: Span, fg: &Color, bg: &Color) -> Arc<Mutex<Surface>> {
+        Arc::new(Mutex::new(Surface {
+            fg: Vec2d::new(size, fg.clone()),
+            bg: Vec2d::new(size, bg.clone()),
             chars: Vec2d::new(size, ' '),
             cursor: (0, 0).into(),
-        }
+        }))
     }
 
-    pub fn draw_line(&mut self, spot: Span, text: &str, style: &Style) {
-        for (i, c) in text.char_indices() {
-            self.chars.set(spot.x + i, spot.y, c);
-        }
-
-        if let Some(fg) = style.fg {
-            for (i, _c) in text.char_indices() {
-                self.fg.set(spot.x + i, spot.y, fg);
-            }
-        }
-
-        if let Some(bg) = style.bg {
-            for (i, _c) in text.char_indices() {
-                self.bg.set(spot.x + i, spot.y, bg);
-            }
-        }
-    }
-
-    pub fn draw_area(&mut self, chr: char, area: Area) {
-        for x in area.0.x..area.1.x {
-            for y in area.0.y..area.1.y {
-                self.chars.set(x, y, chr);
-            }
-        }
-    }
-
-    pub fn style_area(&mut self, style: &Style, area: Area) {
-        if let Some(fg) = style.fg {
-            for x in area.0.x..area.1.x {
-                for y in area.0.y..area.1.y {
-                    self.fg.set(x, y, fg);
-                }
-            }
-        }
-
-        if let Some(bg) = style.bg {
-            for x in area.0.x..area.1.x {
-                for y in area.0.y..area.1.y {
-                    self.bg.set(x, y, bg);
-                }
-            }
-        }
-    }
-
-    pub fn set_cursor(&mut self, spot: Span) {
-        self.cursor.x = spot.x;
-        self.cursor.y = spot.y;
+    pub fn set(&mut self, spot: Span, chr: char) {
+        self.chars.set(spot.x, spot.y, chr);
     }
 
     pub fn render(&self, area: Area) -> String {
@@ -109,10 +62,12 @@ impl Surface {
             }
         }
 
-        // place the cursor in the correct position of screen visually
-        // this has to come last or the rendering will move it
         cmd += cursor_cmd(self.cursor.x, self.cursor.y).as_str();
 
         return cmd;
     }
+}
+
+fn cursor_cmd(x: usize, y: usize) -> String {
+    format!("\x1b[{};{}H", y + 1, x + 1)
 }
